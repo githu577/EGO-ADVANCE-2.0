@@ -1,5 +1,3 @@
-📄 | Source code of "fork.js":
-
 const last = {};
 const cooldown = 10000;
 
