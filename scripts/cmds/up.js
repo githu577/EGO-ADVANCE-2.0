@@ -1,351 +1,328 @@
-const { createCanvas } = require("canvas");
-const fs = require("fs");
 const os = require("os");
+const fs = require("fs");
 const path = require("path");
+const { createCanvas } = require("canvas");
 
-module.exports.config = {
-  name: "up",
-  aliases: ["uptime", "status", "sysinfo"],
-  version: "13.0.0",
-  author: "EGO",
-  countDown: 5,
-  role: 0,
-  shortDescription: "EGO Premium Uptime Card",
-  category: "system",
-  guide: { en: "{p}up" }
-};
+module.exports = {
+  config: {
+    name: "up",
+    aliases: ["uptime", "status", "sysinfo"],
+    version: "16.0.0",
+    author: "EGO",
+    countDown: 5,
+    role: 0,
+    shortDescription: "EGO Live System Monitor",
+    longDescription: "Real-time bot uptime and system dashboard",
+    category: "system",
+    guide: "{p}up"
+  },
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  onStart: async function ({ api, event }) {
+    const threadID = event.threadID;
+    const output = path.join(__dirname, "ego-monitor.png");
+    let loadingID = null;
 
-module.exports.onStart = async function ({ api, event }) {
-  const { threadID, messageID } = event;
-  let loadingID = null;
-  let imagePath = null;
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  try {
-    // Premium loading animation
-    const loading = await api.sendMessage(
-      "⚡ 𝙀𝙂𝙊 𝙎𝙔𝙎𝙏𝙀𝙈\n\n" +
-      "▰▱▱▱▱▱▱▱▱▱ 10%\n" +
-      "⏳ Preparing premium card...",
-      threadID
-    );
+    const send = body => new Promise((resolve, reject) => {
+      api.sendMessage(body, threadID, (err, info) => {
+        if (err) return reject(err);
+        resolve(info);
+      });
+    });
 
-    loadingID = loading && loading.messageID;
+    const edit = (body, id) => new Promise((resolve, reject) => {
+      if (typeof api.editMessage !== "function") {
+        return reject(new Error("Message editing is not supported"));
+      }
+      api.editMessage(body, id, err => err ? reject(err) : resolve());
+    });
 
-    const steps = [
-      "▰▰▱▱▱▱▱▱▱▱ 20%",
-      "▰▰▰▰▱▱▱▱▱▱ 40%",
-      "▰▰▰▰▰▰▱▱▱▱ 60%",
-      "▰▰▰▰▰▰▰▰▱▱ 80%",
-      "▰▰▰▰▰▰▰▰▰▰ 100%"
-    ];
+    try {
+      const loading = await send(
+        "⚡ 𝙀𝙂𝙊 𝙎𝙔𝙎𝙏𝙀𝙈 𝙈𝙊𝙉𝙄𝙏𝙊𝙍\n\n" +
+        "▰▰▱▱▱▱▱▱▱▱ 20%"
+      );
 
-    for (const step of steps) {
-      await sleep(350);
+      loadingID = loading && loading.messageID;
+
+      const stages = [
+        "▰▰▱▱▱▱▱▱▱▱ 20%",
+        "▰▰▰▰▱▱▱▱▱▱ 40%",
+        "▰▰▰▰▰▰▱▱▱▱ 60%",
+        "▰▰▰▰▰▰▰▰▱▱ 80%",
+        "▰▰▰▰▰▰▰▰▰▰ 100%"
+      ];
+
+      for (let index = 0; index < stages.length; index++) {
+        if (index > 0) await wait(600);
+
+        const loadingText =
+          "⚡ 𝙀𝙂𝙊 𝙎𝙔𝙎𝙏𝙀𝙈 𝙈𝙊𝙉𝙄𝙏𝙊𝙍\n\n" +
+          stages[index];
+
+        if (loadingID) {
+          try {
+            await edit(loadingText, loadingID);
+          } catch (_) {
+            // Continue if editing is unsupported by this bot fork.
+          }
+        }
+      }
+
+      const info = getInfo();
+      drawCard(info, output);
+
+      await new Promise((resolve, reject) => {
+        api.sendMessage({
+          body:
+            "⚡ 𝙀𝙂𝙊 𝙇𝙄𝙑𝙀 𝙎𝙔𝙎𝙏𝙀𝙈\n\n" +
+            "🤖 BOT UPTIME: " + info.botUptime + "\n" +
+            "🕒 STARTED AT: " + info.startedAt + "\n" +
+            "🧠 BOT RAM: " + info.botRAM + "\n" +
+            "💾 SERVER RAM: " + info.ramPercent + "%\n" +
+            "🌡️ CPU TEMP: " + info.temperature + "\n\n" +
+            "✨ CREATE BY EGO",
+          attachment: fs.createReadStream(output)
+        }, threadID, (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
 
       if (loadingID) {
         try {
-          await api.editMessage(
-            `⚡ 𝙀𝙂𝙊 𝙎𝙔𝙎𝙏𝙀𝙈\n\n${step}\n⏳ Generating card...`,
-            loadingID
+          await new Promise(resolve =>
+            api.unsendMessage(loadingID, () => resolve())
           );
         } catch (_) {}
       }
-    }
+    } catch (error) {
+      if (loadingID) {
+        try {
+          api.unsendMessage(loadingID, () => {});
+        } catch (_) {}
+      }
 
-    imagePath = await generateCard();
-
-    await api.sendMessage({
-      body:
-        "╭━━━〔 ⚡ EGO SYSTEM 〕━━━╮\n" +
-        `┃ 🕒 Uptime: ${duration(os.uptime())}\n` +
-        `┃ 💻 CPU Cores: ${(os.cpus() || []).length}\n` +
-        `┃ 🧠 RAM: ${bytes(os.totalmem() - os.freemem())} / ${bytes(os.totalmem())}\n` +
-        "┃ ✦ CREATE BY EGO\n" +
-        "╰━━━━━━━━━━━━━━━━━━━━━━╯",
-      attachment: fs.createReadStream(imagePath)
-    }, threadID, messageID);
-
-  } catch (error) {
-    console.error("[EGO UP]", error);
-
-    await api.sendMessage(
-      "❌ EGO SYSTEM ERROR\n" + (error.message || "Unknown error"),
-      threadID,
-      messageID
-    );
-
-  } finally {
-    if (loadingID) {
-      try {
-        await api.unsendMessage(loadingID);
-      } catch (_) {}
-    }
-
-    if (imagePath) {
+      api.sendMessage(
+        "❌ EGO MONITOR ERROR\n" + String(error.message || error),
+        threadID
+      );
+    } finally {
       setTimeout(() => {
         try {
-          if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+          if (fs.existsSync(output)) fs.unlinkSync(output);
         } catch (_) {}
-      }, 5000);
+      }, 10000);
     }
   }
 };
 
-async function generateCard() {
-  const W = 1000;
-  const H = 900;
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext("2d");
-
-  const C = {
-    bg: "#050711",
-    panel: "#0d1628",
-    text: "#f4f8ff",
-    muted: "#91a4c2",
-    cyan: "#00ffd5",
-    purple: "#bd5cff",
-    yellow: "#ffe66d"
-  };
-
-  // Background
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow = ctx.createRadialGradient(750, 180, 10, 750, 180, 600);
-  glow.addColorStop(0, "rgba(0,255,213,0.20)");
-  glow.addColorStop(1, "rgba(5,7,17,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow2 = ctx.createRadialGradient(100, 750, 5, 100, 750, 450);
-  glow2.addColorStop(0, "rgba(189,92,255,0.16)");
-  glow2.addColorStop(1, "rgba(5,7,17,0)");
-  ctx.fillStyle = glow2;
-  ctx.fillRect(0, 0, W, H);
-
-  // Background grid
-  ctx.strokeStyle = "rgba(0,255,213,0.05)";
-  ctx.lineWidth = 1;
-
-  for (let x = 0; x < W; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-
-  for (let y = 0; y < H; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
-
-  // Neon border
-  ctx.save();
-  ctx.shadowColor = C.cyan;
-  ctx.shadowBlur = 25;
-  ctx.strokeStyle = C.cyan;
-  ctx.lineWidth = 3;
-  roundRect(ctx, 25, 25, W - 50, H - 50, 30, false, true);
-  ctx.restore();
-
+function getInfo() {
+  const uptime = process.uptime();
+  const memory = process.memoryUsage();
+  const total = os.totalmem();
+  const used = total - os.freemem();
   const cpus = os.cpus() || [];
-  const totalRAM = os.totalmem();
-  const freeRAM = os.freemem();
-  const usedRAM = totalRAM - freeRAM;
-  const ramPercent = totalRAM
-    ? Math.round((usedRAM / totalRAM) * 100)
-    : 0;
 
-  // Header
-  ctx.fillStyle = C.cyan;
-  ctx.font = "bold 25px Arial";
-  ctx.fillText("EGO // SYSTEM MONITOR", 65, 85);
+  return {
+    botUptime: formatTime(uptime),
+    startedAt: new Date(Date.now() - uptime * 1000)
+      .toLocaleString("en-GB", { hour12: false }),
+    botRAM: formatBytes(memory.rss),
+    heap: formatBytes(memory.heapUsed),
+    serverRAM: formatBytes(used) + " / " + formatBytes(total),
+    ramPercent: Math.round(used / total * 100),
+    cpu: cpus[0] ? cpus[0].model : "Unknown CPU",
+    cores: cpus.length,
+    temperature: getTemperature(),
+    hostname: os.hostname(),
+    platform: os.type() + " " + os.release(),
+    arch: os.arch(),
+    node: process.version,
+    serverUptime: formatTime(os.uptime())
+  };
+}
 
-  ctx.textAlign = "right";
-  ctx.fillStyle = C.muted;
-  ctx.font = "bold 17px Arial";
-  ctx.fillText("PREMIUM EDITION", 935, 85);
-  ctx.textAlign = "left";
+function getTemperature() {
+  const files = [
+    "/sys/class/thermal/thermal_zone0/temp",
+    "/sys/class/hwmon/hwmon0/temp1_input"
+  ];
 
-  ctx.fillStyle = C.text;
-  ctx.font = "bold 58px Arial";
-  ctx.fillText("SYSTEM STATUS", 65, 165);
-
-  ctx.fillStyle = C.muted;
-  ctx.font = "22px Arial";
-  ctx.fillText("LIVE PERFORMANCE DASHBOARD", 68, 205);
-
-  ctx.fillStyle = C.cyan;
-  ctx.fillRect(65, 230, 870, 2);
-
-  // Uptime card
-  panel(ctx, C, 65, 265, 420, 180, "SYSTEM UPTIME");
-
-  ctx.fillStyle = C.cyan;
-  ctx.font = "bold 38px Arial";
-  ctx.fillText(duration(os.uptime()), 90, 350);
-
-  ctx.fillStyle = C.muted;
-  ctx.font = "19px Arial";
-  ctx.fillText("Operating system running time", 90, 395);
-
-  // RAM card
-  panel(ctx, C, 515, 265, 420, 180, "MEMORY USAGE");
-
-  ctx.fillStyle = C.text;
-  ctx.font = "bold 32px Arial";
-  ctx.fillText(`${ramPercent}%`, 545, 335);
-
-  bar(ctx, C, 545, 360, 355, ramPercent);
-
-  ctx.fillStyle = C.muted;
-  ctx.font = "18px Arial";
-  ctx.fillText(`${bytes(usedRAM)} used`, 545, 410);
-  ctx.fillText(`${bytes(freeRAM)} free`, 735, 410);
-
-  // CPU card
-  panel(ctx, C, 65, 475, 870, 155, "PROCESSOR");
-
-  ctx.fillStyle = C.text;
-  ctx.font = "bold 24px Arial";
-  textFit(ctx, cpus[0]?.model || "CPU information unavailable", 90, 545, 800);
-
-  ctx.fillStyle = C.cyan;
-  ctx.font = "22px Arial";
-  ctx.fillText(`Logical cores: ${cpus.length}`, 90, 590);
-
-  // Device information
-  panel(ctx, C, 65, 660, 870, 135, "DEVICE INFORMATION");
-
-  ctx.fillStyle = C.muted;
-  ctx.font = "18px Arial";
-  ctx.fillText("HOSTNAME", 90, 715);
-  ctx.fillText("PLATFORM", 520, 715);
-  ctx.fillText("NODE VERSION", 90, 760);
-  ctx.fillText("ARCHITECTURE", 520, 760);
-
-  ctx.fillStyle = C.text;
-  ctx.font = "bold 19px Arial";
-  textFit(ctx, os.hostname(), 205, 715, 270);
-  textFit(ctx, `${os.type()} ${os.release()}`, 635, 715, 270);
-  ctx.fillText(process.version, 245, 760);
-  ctx.fillText(os.arch(), 680, 760);
-
-  // Footer branding
-  ctx.strokeStyle = "rgba(0,255,213,0.25)";
-  ctx.beginPath();
-  ctx.moveTo(65, 820);
-  ctx.lineTo(935, 820);
-  ctx.stroke();
-
-  ctx.fillStyle = C.purple;
-  ctx.font = "bold 28px Arial";
-  ctx.fillText("CREATE BY EGO", 65, 860);
-
-  ctx.textAlign = "right";
-  ctx.fillStyle = C.cyan;
-  ctx.font = "bold 18px Arial";
-  ctx.fillText("● SYSTEM ONLINE", 935, 860);
-  ctx.textAlign = "left";
-
-  const cache = path.join(__dirname, "cache");
-  if (!fs.existsSync(cache)) {
-    fs.mkdirSync(cache, { recursive: true });
+  for (const file of files) {
+    try {
+      const n = Number(fs.readFileSync(file, "utf8").trim());
+      if (n > 0) {
+        return (n > 1000 ? n / 1000 : n).toFixed(1) + " °C";
+      }
+    } catch (_) {}
   }
 
-  const file = path.join(cache, `ego_up_${Date.now()}.png`);
+  return "N/A";
+}
+
+function formatTime(seconds) {
+  seconds = Math.max(0, Math.floor(seconds));
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor(seconds % 86400 / 3600);
+  const m = Math.floor(seconds % 3600 / 60);
+  const s = seconds % 60;
+  return `${d}d ${h}h ${m}m ${s}s`;
+}
+
+function formatBytes(bytes) {
+  return (bytes / 1024 / 1024 / 1024).toFixed(2) + " GB";
+}
+
+function drawCard(i, file) {
+  const W = 1200, H = 1050;
+  const canvas = createCanvas(W, H);
+  const c = canvas.getContext("2d");
+
+  c.fillStyle = "#050712";
+  c.fillRect(0, 0, W, H);
+
+  glow(c, 160, 170, 280, "#00ffd5", 0.24);
+  glow(c, 1000, 430, 300, "#008cff", 0.19);
+  glow(c, 200, 900, 250, "#c342ff", 0.2);
+
+  c.save();
+  c.strokeStyle = "#00ffd5";
+  c.lineWidth = 3;
+  c.shadowColor = "#00ffd5";
+  c.shadowBlur = 25;
+  roundRect(c, 28, 28, W - 56, H - 56, 32);
+  c.stroke();
+  c.restore();
+
+  txt(c, "EGO // SYSTEM MONITOR", 72, 90, 30, "#00ffd5", 800);
+  txt(c, "PREMIUM EDITION", 1128, 90, 21, "#b5c9df", 700, "right");
+  txt(c, "SYSTEM STATUS", 72, 170, 64, "#f5f8ff", 900);
+  txt(c, "LIVE BOT PERFORMANCE DASHBOARD", 76, 220, 26, "#9aabc1", 500);
+  line(c, 72, 252, 1128, 252, "#00ffd5", 3);
+
+  panel(c, 72, 285, 510, 225);
+  txt(c, "BOT PROCESS UPTIME", 102, 330, 25, "#00ffd5", 800);
+  txt(c, i.botUptime, 102, 390, 37, "#ffffff", 800);
+  txt(c, "Current process runtime", 102, 440, 20, "#a4b5ca", 500);
+  txt(c, "STARTED AT", 102, 480, 18, "#00ffd5", 700);
+  txt(c, i.startedAt, 245, 480, 17, "#ffffff", 600);
+
+  panel(c, 610, 285, 518, 225);
+  txt(c, "SERVER MEMORY", 642, 330, 25, "#00ffd5", 800);
+  txt(c, i.ramPercent + "%", 642, 385, 43, "#ffffff", 800);
+  bar(c, 642, 408, 452, 18, i.ramPercent / 100);
+  txt(c, i.serverRAM, 642, 462, 20, "#a4b5ca", 600);
+  txt(c, "BOT RAM: " + i.botRAM, 642, 492, 19, "#00ffd5", 700);
+
+  panel(c, 72, 535, 1056, 155);
+  txt(c, "PROCESSOR", 102, 580, 25, "#00ffd5", 800);
+  txt(c, fit(i.cpu, 48), 102, 625, 28, "#ffffff", 700);
+  txt(c, "LOGICAL CORES: " + i.cores, 102, 662, 21, "#69f5df", 600);
+
+  panel(c, 72, 715, 1056, 225);
+  txt(c, "DEVICE / RUNTIME INFORMATION", 102, 760, 25, "#00ffd5", 800);
+  txt(c, "HOSTNAME", 102, 810, 18, "#8fa5bf", 700);
+  txt(c, fit(i.hostname, 24), 245, 810, 19, "#ffffff", 600);
+  txt(c, "PLATFORM", 650, 810, 18, "#8fa5bf", 700);
+  txt(c, fit(i.platform, 28), 790, 810, 19, "#ffffff", 600);
+
+  txt(c, "NODE VERSION", 102, 855, 18, "#8fa5bf", 700);
+  txt(c, i.node, 270, 855, 20, "#ffffff", 600);
+  txt(c, "ARCHITECTURE", 650, 855, 18, "#8fa5bf", 700);
+  txt(c, i.arch, 820, 855, 20, "#ffffff", 600);
+
+  txt(c, "CPU TEMPERATURE", 102, 900, 18, "#8fa5bf", 700);
+  txt(c, i.temperature, 310, 900, 20, "#ffffff", 600);
+  txt(c, "SERVER UPTIME", 650, 900, 18, "#8fa5bf", 700);
+  txt(c, i.serverUptime, 820, 900, 20, "#ffffff", 600);
+
+  line(c, 72, 965, 1128, 965, "#20434f", 2);
+  txt(c, "CREATE BY EGO", 72, 1010, 32, "#c66bff", 900);
+  txt(c, "● SYSTEM ONLINE", 1128, 1010, 22, "#00ffd5", 800, "right");
+
   fs.writeFileSync(file, canvas.toBuffer("image/png"));
-  return file;
 }
 
-function panel(ctx, C, x, y, w, h, title) {
-  ctx.fillStyle = C.panel;
-  roundRect(ctx, x, y, w, h, 20, true, false);
-
-  ctx.strokeStyle = "rgba(0,255,213,0.22)";
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, x, y, w, h, 20, false, true);
-
-  ctx.fillStyle = C.cyan;
-  ctx.font = "bold 17px Arial";
-  ctx.fillText(title, x + 25, y + 32);
+function panel(c, x, y, w, h) {
+  c.save();
+  c.fillStyle = "rgba(13,23,42,0.96)";
+  c.strokeStyle = "#17434d";
+  c.lineWidth = 2;
+  roundRect(c, x, y, w, h, 25);
+  c.fill();
+  c.shadowColor = "#00ffd5";
+  c.shadowBlur = 10;
+  c.stroke();
+  c.restore();
 }
 
-function bar(ctx, C, x, y, w, percent) {
-  ctx.fillStyle = "#1a2940";
-  roundRect(ctx, x, y, w, 14, 7, true, false);
+function bar(c, x, y, w, h, value) {
+  c.fillStyle = "#202d43";
+  roundRect(c, x, y, w, h, h / 2);
+  c.fill();
 
-  const width = Math.max(0, Math.min(w, w * percent / 100));
+  const width = Math.max(0, Math.min(w, w * value));
+  if (!width) return;
 
-  if (width > 0) {
-    const gradient = ctx.createLinearGradient(x, y, x + w, y);
-    gradient.addColorStop(0, C.cyan);
-    gradient.addColorStop(1, C.purple);
+  const gradient = c.createLinearGradient(x, y, x + w, y);
+  gradient.addColorStop(0, "#00ffd5");
+  gradient.addColorStop(1, "#8c8bff");
 
-    ctx.fillStyle = gradient;
-    roundRect(ctx, x, y, width, 14, 7, true, false);
-  }
+  c.save();
+  c.fillStyle = gradient;
+  c.shadowColor = "#00ffd5";
+  c.shadowBlur = 15;
+  roundRect(c, x, y, width, h, h / 2);
+  c.fill();
+  c.restore();
 }
 
-function roundRect(ctx, x, y, w, h, r, fill, stroke) {
-  const radius = Math.min(r, w / 2, h / 2);
-
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(
-    x + w, y + h, x + w - radius, y + h
-  );
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-
-  if (fill) ctx.fill();
-  if (stroke) ctx.stroke();
+function glow(c, x, y, r, color, alpha) {
+  const g = c.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, "transparent");
+  c.save();
+  c.globalAlpha = alpha;
+  c.fillStyle = g;
+  c.fillRect(x - r, y - r, r * 2, r * 2);
+  c.restore();
 }
 
-function duration(seconds) {
-  seconds = Math.floor(seconds || 0);
-
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  return `${days}d ${hours}h ${mins}m ${secs}s`;
+function line(c, x1, y1, x2, y2, color, width) {
+  c.save();
+  c.strokeStyle = color;
+  c.lineWidth = width;
+  c.beginPath();
+  c.moveTo(x1, y1);
+  c.lineTo(x2, y2);
+  c.stroke();
+  c.restore();
 }
 
-function bytes(n) {
-  if (!Number.isFinite(n) || n < 0) return "N/A";
-  if (n === 0) return "0 B";
-
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.min(
-    Math.floor(Math.log(n) / Math.log(1024)),
-    units.length - 1
-  );
-
-  return `${(n / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
+function txt(c, value, x, y, size, color, weight, align = "left") {
+  c.save();
+  c.font = `${weight} ${size}px Arial`;
+  c.fillStyle = color;
+  c.textAlign = align;
+  c.shadowColor = color;
+  c.shadowBlur = color === "#00ffd5" ? 6 : 0;
+  c.fillText(String(value), x, y);
+  c.restore();
 }
 
-function textFit(ctx, text, x, y, maxWidth) {
-  let value = String(text);
+function fit(value, max) {
+  value = String(value);
+  return value.length > max ? value.slice(0, max - 3) + "..." : value;
+}
 
-  while (
-    value.length > 3 &&
-    ctx.measureText(value).width > maxWidth
-  ) {
-    value = value.slice(0, -1);
-  }
-
-  if (value !== String(text)) value += "...";
-  ctx.fillText(value, x, y);
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
 }
