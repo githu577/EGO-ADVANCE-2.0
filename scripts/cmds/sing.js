@@ -2,214 +2,178 @@ const axios = require("axios");
 const yts = require("yt-search");
 const fs = require("fs");
 const path = require("path");
-const { pipeline } = require("stream/promises");
 
 const CACHE_DIR = path.join(__dirname, "cache");
 const SONG_API_BASE = "https://eryxenx.agi.bd/api/song";
 
-const BARS = [
-  "▰▰▱▱▱▱▱▱▱▱ 20%",
-  "▰▰▰▰▱▱▱▱▱▱ 40%",
-  "▰▰▰▰▰▰▱▱▱▱ 60%",
-  "▰▰▰▰▰▰▰▰▱▱ 80%",
-  "▰▰▰▰▰▰▰▰▰▰ 100%"
-];
-
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-module.exports.config = {
-  name: "sing",
-  aliases: ["song"],
-  version: "3.1.0",
-  author: "EGO",
-  countDown: 5,
-  role: 0,
-  shortDescription: "EGO Music",
-  longDescription: "Search and download songs",
-  category: "media",
-  guide: "{pn} <song name>"
-};
-
 async function fetchSongInfo(videoUrl) {
-  const response = await axios.get(SONG_API_BASE, {
-    params: { url: videoUrl },
-    timeout: 60000
-  });
+	const infoRes = await axios.get(SONG_API_BASE, {
+		params: { url: videoUrl },
+		timeout: 60000
+	});
 
-  const data = response.data;
-
-  if (!data?.success || !data?.downloadUrl) {
-    throw new Error(
-      data?.error || data?.message || "Song API did not return a download URL"
-    );
-  }
-
-  return data;
+	const data = infoRes.data;
+	if (!data?.success || !data?.downloadUrl) {
+		throw new Error(data?.error || "downloadUrl paoa jayni API response e");
+	}
+	return data;
 }
 
-async function downloadSong(url, filePath) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+async function streamDownloadToFile(dlUrl, filePath) {
+	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
 
-  const response = await axios.get(url, {
-    responseType: "stream",
-    timeout: 300000,
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
-    headers: { "User-Agent": "Mozilla/5.0" }
-  });
+	const response = await axios.get(dlUrl, {
+		responseType: "stream",
+		timeout: 300000,
+		maxContentLength: Infinity,
+		maxBodyLength: Infinity,
+		headers: {
+			"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1"
+		}
+	});
 
-  const type = String(response.headers["content-type"] || "").toLowerCase();
+	const contentType = response.headers["content-type"] || "";
+	const isValid = contentType.includes("video") || contentType.includes("audio") || contentType.includes("octet-stream");
 
-  if (
-    type.includes("text/html") ||
-    type.includes("application/json")
-  ) {
-    let body = "";
-    for await (const chunk of response.data) {
-      body += chunk.toString();
-      if (body.length > 1000) break;
-    }
-    throw new Error("Download URL returned an error page: " + body.slice(0, 250));
-  }
+	if (!isValid) {
+		let bodyText = "";
+		try {
+			const chunks = [];
+			for await (const chunk of response.data) {
+				chunks.push(chunk);
+				if (Buffer.concat(chunks).length > 2000) break;
+			}
+			bodyText = Buffer.concat(chunks).toString("utf-8").slice(0, 500);
+		} catch (_) {}
 
-  await pipeline(response.data, fs.createWriteStream(filePath));
+		throw new Error(
+			`Invalid content received from downloadUrl (type: ${contentType})` +
+			(bodyText ? ` — upstream said: "${bodyText.trim()}"` : "")
+		);
+	}
 
-  const stats = fs.statSync(filePath);
+	const writer = fs.createWriteStream(filePath);
 
-  if (stats.size < 1024) {
-    throw new Error("Downloaded audio is empty or incomplete");
-  }
+	await new Promise((resolve, reject) => {
+		response.data.pipe(writer);
+		let failed = false;
+		const onError = (err) => {
+			if (failed) return;
+			failed = true;
+			writer.close();
+			fs.unlink(filePath, () => {});
+			reject(err);
+		};
+		response.data.on("error", onError);
+		writer.on("error", onError);
+		writer.on("close", () => { if (!failed) resolve(); });
+	});
+
+	const stats = fs.statSync(filePath);
+	if (stats.size < 1024) {
+		fs.unlink(filePath, () => {});
+		throw new Error(`Downloaded file too small (${stats.size} bytes) — corrupt ba failed download`);
+	}
 }
 
-function tempFilePath() {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-  return path.join(
-    CACHE_DIR,
-    `ego_music_${Date.now()}_${Math.floor(Math.random() * 10000)}.mp3`
-  );
+function extractApiErrorMessage(err) {
+	const raw = err.response?.data;
+
+	if (raw && typeof raw === "object" && !Buffer.isBuffer(raw)) {
+		if (raw.error) return raw.error;
+		if (raw.message) return raw.message;
+	}
+
+	if (raw) {
+		try {
+			const text = Buffer.isBuffer(raw) ? raw.toString("utf-8") : String(raw);
+			const parsed = JSON.parse(text);
+			if (parsed?.error) return parsed.error;
+			if (parsed?.message) return parsed.message;
+		} catch (_) {}
+	}
+
+	return err.message;
+}
+
+function tempFilePath(ext) {
+	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+	return path.join(CACHE_DIR, `sing_${Date.now()}_${Math.floor(Math.random() * 1e4)}.${ext}`);
+}
+
+async function sendWithRetry(message, msg, retries = 2) {
+	for (let i = 0; i <= retries; i++) {
+		try {
+			return await message.reply(msg);
+		} catch (err) {
+			const is408 = err?.error === 408 || String(err?.message || err).includes("408");
+			if (is408 && i < retries) {
+				console.warn(`[sing] Upload timeout, retrying (${i + 1}/${retries})...`);
+				await new Promise(r => setTimeout(r, 2000));
+				continue;
+			}
+			throw err;
+		}
+	}
 }
 
 function react(api, messageID, emoji) {
-  try {
-    api.setMessageReaction(emoji, messageID, () => {}, true);
-  } catch (_) {}
+	try {
+		api.setMessageReaction(emoji, messageID, () => {}, true);
+	} catch (_) {}
 }
 
-function getError(err) {
-  const data = err.response?.data;
+module.exports.config = {
+	name: "sing",
+	aliases: ["song"],
+	version: "2.0.0",
+	author: "EryXenX",
+	countDown: 5,
+	role: 0,
+	shortDescription: "YouTube theke gaan download",
+	longDescription: "Song name diye sorasori mp3 download kore pathay",
+	category: "media",
+	guide: {
+		en: "{pn} <song name>\nExample: {pn} mann mera"
+	}
+};
 
-  if (data && typeof data === "object") {
-    return data.error || data.message || err.message;
-  }
+module.exports.onStart = async function ({ api, event, args, message }) {
+	const { messageID } = event;
+	const query = args.join(" ").trim();
 
-  return err.message || String(err);
-}
+	if (!query) {
+		return message.reply("❌ Song name den.\nExample: sing mann mera");
+	}
 
-module.exports.onStart = async function ({
-  api,
-  event,
-  args,
-  message
-}) {
-  const query = args.join(" ").trim();
+	react(api, messageID, "⏳");
 
-  if (!query) {
-    return message.reply("Song name dao. Example: sing Mann Mera");
-  }
+	let file;
+	try {
+		const search = await yts(query);
+		const video = search.videos?.[0];
+		if (!video) {
+			react(api, messageID, "❌");
+			return message.reply(`❌ "${query}" er kono result paoa jayni`);
+		}
 
-  let loadingID = null;
-  let file = null;
-  let sentAudio = false;
+		const info = await fetchSongInfo(video.url);
+		file = tempFilePath("mp3");
+		await streamDownloadToFile(info.downloadUrl, file);
 
-  async function showLoading(index) {
-    const text = "EGO MUSIC\n" + BARS[index];
+		await sendWithRetry(message, {
+			body: `🎶 ${info.title || video.title}\n🕒 ${video.timestamp}`,
+			attachment: fs.createReadStream(file)
+		});
 
-    if (!loadingID) {
-      const result = await message.reply(text);
-      loadingID = result?.messageID;
-      return;
-    }
-
-    if (typeof api.editMessage === "function") {
-      await new Promise((resolve, reject) => {
-        api.editMessage(text, loadingID, err => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-    }
-  }
-
-  async function removeLoading() {
-    if (!loadingID) return;
-
-    try {
-      await new Promise(resolve => {
-        api.unsendMessage(loadingID, () => resolve());
-      });
-    } catch (_) {}
-  }
-
-  try {
-    react(api, event.messageID, "⏳");
-
-    await showLoading(0);
-
-    const search = await yts(query);
-    const video = search.videos?.[0];
-
-    if (!video) {
-      throw new Error("No YouTube result found for: " + query);
-    }
-
-    await showLoading(1);
-
-    const info = await fetchSongInfo(video.url);
-
-    await showLoading(2);
-
-    file = tempFilePath();
-    await downloadSong(info.downloadUrl, file);
-
-    await showLoading(3);
-    await wait(400);
-    await showLoading(4);
-
-    await removeLoading();
-
-    await new Promise((resolve, reject) => {
-      api.sendMessage(
-        {
-          body:
-            "🎵 " + (info.title || video.title) +
-            "\n🕒 " + (video.timestamp || "Unknown") +
-            "\n\nEGO MUSIC",
-          attachment: fs.createReadStream(file)
-        },
-        event.threadID,
-        (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        }
-      );
-    });
-
-    sentAudio = true;
-    react(api, event.messageID, "✅");
-  } catch (err) {
-    console.error("[EGO MUSIC]", err);
-
-    await removeLoading();
-    react(api, event.messageID, "❌");
-
-    return message.reply("EGO MUSIC ERROR: " + getError(err));
-  } finally {
-    await removeLoading();
-
-    if (file) {
-      try {
-        if (fs.existsSync(file)) fs.unlinkSync(file);
-      } catch (_) {}
-    }
-  }
+		react(api, messageID, "✅");
+	} catch (err) {
+		console.error(err);
+		react(api, messageID, "❌");
+		return message.reply("❌ Download failed: " + extractApiErrorMessage(err));
+	} finally {
+		if (file) {
+			try { fs.unlinkSync(file); } catch (e) { console.error("[sing] cleanup error:", e.message); }
+		}
+	}
 };
