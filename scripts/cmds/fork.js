@@ -1,39 +1,115 @@
-exports.config = {
-  name: "fork",
-  version: "1.0.0",
-  author: "EryXenX",
-  countDown: 0,
-  role: 0,
-  shortDescription: "Fork Link",
-  longDescription: "Responds with GitHub repo link when 'fork' or 'repository' is mentioned. Cooldown: 10 seconds.",
-  category: "system",
-  guide: {
-    en: "Type 'fork' or 'repository'"
-  }
-};
+📄 | Source code of "fork.js":
 
 const last = {};
-const cool = 10000;
+const cooldown = 10000;
 
-exports.onStart = async function(){};
+exports.config = {
+ name: "fork",
+ version: "3.1.0",
+ author: "EGO",
+ countDown: 0,
+ role: 0,
+ shortDescription: "EGO FORK BOSS EDITION",
+ longDescription: "EGO FORK Loading Animation",
+ category: "system",
+ guide: {
+ en: "Type fork or repository"
+ }
+};
 
-exports.onChat = async function({event: z, api: y}){
-  const t = z.threadID;
-  const n = Date.now();
-  if(last[t] && n - last[t] < cool) return;
+exports.onStart = async function () {};
 
-  const m = (z.body || "").toLowerCase().trim();
-  if(!m) return;
+exports.onChat = async function ({ event, api }) {
+ const threadID = event.threadID;
+ const messageID = event.messageID;
+ const body = (event.body || "").toLowerCase().trim();
+ const now = Date.now();
 
-  const fork = m.includes("fork") || m.includes("repository");
+ if (!body) return;
+ if (!body.includes("fork") && !body.includes("repository")) return;
 
-  if(fork){
-    y.sendMessage(
-`Aɢᴇ ᴀᴍʀ ʙᴏss ʜᴀᴍɪᴍ ᴋᴇ ᴇᴋᴛᴀ ʙᴏᴡ ᴅᴇ ᴛᴀʀᴘᴏʀ 🫶🩵`,
-      t,
-      z.messageID
-    );
+ if (last[threadID] && now - last[threadID] < cooldown) return;
+ last[threadID] = now;
 
-    last[t] = n;
-  }
+ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+ const send = (text, replyTo) =>
+ new Promise((resolve, reject) => {
+ api.sendMessage(text, threadID, (err, info) => {
+ if (err) return reject(err);
+ resolve(info);
+ }, replyTo);
+ });
+
+ const edit = (text, id) =>
+ new Promise((resolve, reject) => {
+ api.editMessage(text, id, err => {
+ if (err) return reject(err);
+ resolve();
+ });
+ });
+
+ const remove = id =>
+ new Promise((resolve, reject) => {
+ api.unsendMessage(id, err => {
+ if (err) return reject(err);
+ resolve();
+ });
+ });
+
+ let loadingID;
+
+ try {
+ const loading = await send(
+ "⚡ 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n▰▰▱▱▱▱▱▱▱▱ 20%",
+ messageID
+ );
+
+ if (!loading || !loading.messageID) {
+ throw new Error("Loading message ID not found");
+ }
+
+ loadingID = loading.messageID;
+
+ const progress = [
+ "⚡ 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n▰▰▰▰▱▱▱▱▱▱ 40%",
+ "⚡ 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n▰▰▰▰▰▰▱▱▱▱ 60%",
+ "⚡ 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n▰▰▰▰▰▰▰▰▱▱ 80%",
+ "⚡ 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n▰▰▰▰▰▰▰▰▰▰ 100%"
+ ];
+
+ for (const text of progress) {
+ await wait(700);
+ await edit(text, loadingID);
+ }
+
+ await wait(400);
+ await remove(loadingID);
+ loadingID = null;
+
+ await send(
+ "👑━━━━━━━━━━━━👑\n" +
+ " 𝙀𝙂𝙊 𝙁𝙊𝙍𝙆\n" +
+ "⚡ BOSS EDITION ⚡\n" +
+ "👑━━━━━━━━━━━━👑\n\n" +
+ "Aɢᴇ ᴀᴍᴀʀ ʙᴏss ᴇɢᴏ ᴋᴇ ᴇᴋᴛᴀ ʙᴏᴡ ᴅᴇ ᴛᴀʀᴘᴏʀ 🫶🩵",
+ messageID
+ );
+
+ } catch (error) {
+ console.error("[EGO FORK ERROR]", error);
+
+ if (loadingID) {
+ try {
+ await remove(loadingID);
+ } catch (_) {}
+ }
+
+ try {
+ await send(
+ "❌ EGO FORK ERROR\nCheck api.editMessage() support.",
+ messageID
+ );
+ } catch (_) {}
+ }
 };
