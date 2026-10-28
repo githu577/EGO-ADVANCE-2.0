@@ -1,141 +1,71 @@
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
 
 module.exports = {
   config: {
-    name: "edit",
-    aliases: [],
-    version: "4.0.0",
-    author: "EryXenX",
-    countDown: 30,
+    name: "edit2",
+    aliases: ["e"],
+    version: "0.0.7",
+    author: "𝐌𝙴ʜ𝐄ᴅ𝐈",
+    countDown: 25, // Updated to 25 seconds
     role: 0,
-    shortDescription: "Edit image using AI",
-    category: "AI",
-    guide: "{pn} <text> (reply to an image) | {pn} -a <text> (reply to an image, then reply to the bot's message with a 2nd photo)"
+    shortDescription: "Edit image",
+    longDescription: "Reply to any image",
+    category: "image",
+    guide: "{pn} [text]"
   },
 
-  onStart: async function ({ api, event, args }) {
-    const { threadID, messageID, messageReply } = event;
-    const addMode = args.length > 0 && (args[0] === "-a" || args[0] === "--add");
-    const promptArgs = addMode ? args.slice(1) : args;
-    const prompt = promptArgs.join(" ").trim();
+  onStart: async function ({ api, event, args, message, usersData }) {
+    const { senderID, messageReply } = event;
 
-    if (!prompt) {
-      return api.sendMessage(
-        addMode
-          ? "⚠️ Usage: edit -a <text> (reply to an image)"
-          : "⚠️ Please provide some text for the image.",
-        threadID,
-        messageID
-      );
+    /* ===== VIP & PERMISSION CHECK ===== */
+    const ADMINS = global.GoatBot?.config?.adminBot || [];
+    const isBotAdmin = ADMINS.includes(senderID);
+
+    if (!isBotAdmin) {
+      const userData = await usersData.get(senderID);
+      const vip = userData?.data?.vip;
+
+      if (!vip || !vip.expires || vip.expires < Date.now()) {
+        return api.sendMessage("❌ 𝐕𝐈𝐏 𝐎𝐍𝐋𝐘 𝐂𝐎𝐌𝐌𝐀𝐍𝐃\n" +
+          "• 𝐎𝐧𝐥𝐲 𝐕𝐈𝐏 𝐮𝐬𝐞𝐫𝐬 𝐜𝐚𝐧 𝐮𝐬𝐞 𝐞𝐝𝐢𝐭\n" +
+          "• 𝐓𝐲𝐩𝐞: vip buy", event.threadID, event.messageID);
+      }
     }
 
-    const imgUrl = messageReply?.attachments?.[0]?.url;
-    if (!imgUrl) {
-      return api.sendMessage("⚠️ Please reply to an image.", threadID, messageID);
+    const react = (emoji) => api.setMessageReaction(emoji, event.messageID, () => {}, true);
+
+    try {
+      const prompt = args.join(" ");
+
+      if (!prompt) {
+        react("⚠️");
+        return api.sendMessage("⚠️ | Please provide text.", event.threadID);
+      }
+
+      const imageUrl = messageReply?.attachments[0]?.url;
+
+      if (!imageUrl) {
+        react("🖼️");
+        return api.sendMessage("🖼️ | Please reply to an image.", event.threadID);
+      }
+
+      react("⏳");
+
+      const apiUrl = `https://azadx69x.is-a.dev/api/editor?url=${encodeURIComponent(imageUrl)}&prompt=${encodeURIComponent(prompt)}`;
+
+      const response = await axios.get(apiUrl, { responseType: "stream" });
+
+      react("✅");
+
+      api.sendMessage({
+        body: `🖌 𝐈𝐦𝐚𝐠𝐞 𝐞𝐝𝐢𝐭𝐞𝐝 𝐬𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲.\n𝐏𝐫𝐨𝐦𝐩𝐭: ${prompt}`,
+        attachment: response.data
+      }, event.threadID, messageReply?.messageID);
+
+    } catch (error) {
+      console.error(error);
+      react("❌");
+      api.sendMessage("❌ | Failed to process image.", event.threadID);
     }
-
-    if (!addMode) {
-      api.setMessageReaction("⏳", messageID, () => {}, true);
-      return runEditRequest({ api, event, prompt, imageUrls: [imgUrl], reactionMsgID: messageID });
-    }
-
-    api.setMessageReaction("🫩", messageID, () => {}, true);
-
-    api.sendMessage(
-      "📷 Send another photo\nReply to this message with your 2nd image.",
-      threadID,
-      (err, info) => {
-        if (err || !info) {
-          api.setMessageReaction("❌", messageID, () => {}, true);
-          return;
-        }
-        global.GoatBot.onReply.set(info.messageID, {
-          commandName: module.exports.config.name,
-          messageID: info.messageID,
-          author: event.senderID,
-          prompt,
-          imageUrls: [imgUrl],
-          reactionMsgID: messageID
-        });
-      },
-      messageID
-    );
-  },
-
-  onReply: async function ({ api, event, Reply }) {
-    if (event.senderID !== Reply.author) return;
-
-    const secondUrl = event.attachments?.[0]?.url;
-    if (!secondUrl) {
-      return api.sendMessage(
-        "⚠️ Please reply to this message with a photo (image attachment).",
-        event.threadID,
-        event.messageID
-      );
-    }
-
-    api.setMessageReaction("🐣", event.messageID, () => {}, true);
-
-    await runEditRequest({
-      api,
-      event,
-      prompt: Reply.prompt,
-      imageUrls: [...Reply.imageUrls, secondUrl],
-      reactionMsgID: event.messageID
-    });
-
-    global.GoatBot.onReply.delete(Reply.messageID);
   }
 };
-
-const API_BASE = "https://eryxenx.agi.bd/api/imgedit";
-
-async function runEditRequest({ api, event, prompt, imageUrls, reactionMsgID }) {
-  try {
-    const params = new URLSearchParams();
-    params.set("image", imageUrls[0]);
-    if (imageUrls[1]) params.set("image2", imageUrls[1]);
-    params.set("prompt", prompt);
-
-    const res = await axios.get(`${API_BASE}?${params.toString()}`, { timeout: 120000 });
-    const data = res.data;
-    const finalImageURL = data && data.success ? data.imageUrl : null;
-
-    if (!finalImageURL) {
-      const errMsg = (data && (data.error || data.message)) || "Unknown reason";
-      api.setMessageReaction("⚠️", reactionMsgID, () => {}, true);
-      return api.sendMessage(`❌ Failed to edit\nReason: ${errMsg}`, event.threadID, event.messageID);
-    }
-
-    const cacheDir = path.join(__dirname, "cache");
-    fs.mkdirSync(cacheDir, { recursive: true });
-
-    const imageResponse = await axios.get(finalImageURL, {
-      responseType: "arraybuffer",
-      timeout: 60000
-    });
-
-    const contentType = data.contentType || "";
-    const extFromType = contentType.split("/").pop();
-    const ext = (extFromType || finalImageURL.split("?")[0].split(".").pop() || "png").toLowerCase();
-    const safeExt = ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "png";
-    const filePath = path.join(cacheDir, `${Date.now()}.${safeExt}`);
-    fs.writeFileSync(filePath, Buffer.from(imageResponse.data));
-
-    api.setMessageReaction("✅", reactionMsgID, () => {}, true);
-    api.sendMessage(
-      {
-        body: "✅ Edit complete",
-        attachment: fs.createReadStream(filePath)
-      },
-      event.threadID,
-      () => fs.unlinkSync(filePath)
-    );
-  } catch (err) {
-    console.error("EDIT Error:", err?.response?.data || err.message);
-    api.setMessageReaction("❌", reactionMsgID, () => {}, true);
-    api.sendMessage("❌ Failed to edit\nReason: unexpected error", event.threadID, event.messageID);
-  }
-}
