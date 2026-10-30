@@ -1,179 +1,97 @@
 const axios = require("axios");
-const yts = require("yt-search");
-const fs = require("fs");
-const path = require("path");
 
-const CACHE_DIR = path.join(__dirname, "cache");
-const SONG_API_BASE = "https://eryxenx.agi.bd/api/song";
+const baseApiUrl = async () => (await axios.get("https://raw.githubusercontent.com/aura-mahmud/HINATA/main/baseApiUrl.json")).data.mahmud;
 
-async function fetchSongInfo(videoUrl) {
-	const infoRes = await axios.get(SONG_API_BASE, {
-		params: { url: videoUrl },
-		timeout: 60000
-	});
+module.exports = {
+        config: {
+                name: "sing",
+                version: "5.5",
+                author: "MahMUD",
+                countDown: 10,
+                role: 0,
+                description: "better then all sing",
+                category: "music",
+                guide: {
+                        en: '   {pn} <song name>: Download audio Default v1'
+                                + '\n   {pn} vN <name>: Use version N for audio e.g., v2, v3'
+                                + '\n   {pn} -v <name>: Download video Default v1'
+                                + '\n   {pn} vN -v <name>: Use version N for video'
+                                + '\n   {pn} list: See all available dynamic versions',
+                        vi: '   {pn} <tên bài hát>: Tải âm thanh Mặc định v1'
+                                + '\n   {pn} vN <tên>: Dùng phiên bản N cho âm thanh'
+                                + '\n   {pn} -v <tên>: Tải video Mặc định v1'
+                                + '\n   {pn} vN -v <tên>: Dùng phiên bản N cho video'
+                                + '\n   {pn} list: Xem tất cả phiên bản hiện có'
+                }
+        },
+        langs: {
+                en: {
+                        noInput: "× Baby, please provide a song or video name.",
+                        success: "✅ | 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐬𝐨𝐧𝐠 𝐛𝐚𝐛𝐲\n• 𝐒𝐢𝐧𝐠 𝐕𝐞𝐫𝐬𝐢𝐨𝐧: %2\n• 𝐒𝐢𝐧𝐠 𝐓𝐲𝐩𝐞: %3\n• 𝐒𝐞𝐚𝐫𝐜𝐡: %1",
+                        listFetchErr: "Failed to fetch the version list.",
+                        error: "× API error: %1. Contact MahMUD for help.\n•WhatsApp: 01836298139"
+                },
+                vi: {
+                        noInput: "× Bé ơi, vui lòng nhập tên bài hát hoặc video.",
+                        success: "✅ | 𝐁à𝐢 ðá𝐭 𝐜ủ𝐚 𝐛é đâ𝐲\n• 𝐏𝐡𝐢ê𝐧 𝐛ả𝐧: %2\n• 𝐋𝐨ạ𝐢: %3\n• 𝔗ì𝔪 𝔨𝔦ế𝔪: %1",
+                        listFetchErr: "Không thể lấy danh sách phiên bản.",
+                        error: "× Lỗi API: %1. Liên hệ MahMUD để được giúp đỡ.\n•WhatsApp: 01836298139"
+                }
+        },
+        onStart: async function ({ api, event, args, message, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-	const data = infoRes.data;
-	if (!data?.success || !data?.downloadUrl) {
-		throw new Error(data?.error || "downloadUrl paoa jayni API response e");
-	}
-	return data;
-}
+                const { messageID } = event;
 
-async function streamDownloadToFile(dlUrl, filePath) {
-	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+                try {
+                        if (args[0] === "list") {
+                                const response = await axios.get(`${await baseApiUrl()}/api/sing/list`);
+                                const data = response.data;
+                                return data ? message.reply(`• 𝐓𝐨𝐭𝐚𝐥 𝐕𝐞𝐫𝐬𝐢𝐨𝐧: ${data.total}\n\n${data.versions.join(", ")}`) : message.reply(getLang("listFetchErr"));
+                        }
 
-	const response = await axios.get(dlUrl, {
-		responseType: "stream",
-		timeout: 300000,
-		maxContentLength: Infinity,
-		maxBodyLength: Infinity,
-		headers: {
-			"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1"
-		}
-	});
+                        let version = "v1";
+                        if (args[0]) {
+                                const arg0 = args[0].toLowerCase();
+                                if (/^v\d+$/.test(arg0)) {
+                                        version = args.shift().toLowerCase();
+                                } else if (/^version\d+$/.test(arg0)) {
+                                        version = "v" + arg0.replace("version", "");
+                                        args.shift();
+                                } else if (/^-v\d+$/.test(arg0)) {
+                                        version = "v" + arg0.replace("-v", "");
+                                        args.shift();
+                                }
+                        }
 
-	const contentType = response.headers["content-type"] || "";
-	const isValid = contentType.includes("video") || contentType.includes("audio") || contentType.includes("octet-stream");
+                        let type = "audio";
+                        if (args[0]) {
+                                if (args[0] === "-v" || args[0] === "video") {
+                                        type = "video";
+                                        args.shift();
+                                }
+                        }
 
-	if (!isValid) {
-		let bodyText = "";
-		try {
-			const chunks = [];
-			for await (const chunk of response.data) {
-				chunks.push(chunk);
-				if (Buffer.concat(chunks).length > 2000) break;
-			}
-			bodyText = Buffer.concat(chunks).toString("utf-8").slice(0, 500);
-		} catch (_) {}
+                        const search = args.join(" ");
+                        if (!search) return message.reply(getLang("noInput"));
 
-		throw new Error(
-			`Invalid content received from downloadUrl (type: ${contentType})` +
-			(bodyText ? ` — upstream said: "${bodyText.trim()}"` : "")
-		);
-	}
+                        api.setMessageReaction("⌛", messageID, () => {}, true);
 
-	const writer = fs.createWriteStream(filePath);
+                        const response = await axios.get(`${await baseApiUrl()}/api/sing?version=${version}&search=${encodeURIComponent(search)}&type=${type}`, { responseType: "stream" });
+                        const stream = response.data;
+                        return message.reply({
+                                body: getLang("success", search, version, type),
+                                attachment: stream
+                        }, (error, info) => {
+                                api.setMessageReaction("🪽", event.messageID, () => {}, true);
+                        });
 
-	await new Promise((resolve, reject) => {
-		response.data.pipe(writer);
-		let failed = false;
-		const onError = (err) => {
-			if (failed) return;
-			failed = true;
-			writer.close();
-			fs.unlink(filePath, () => {});
-			reject(err);
-		};
-		response.data.on("error", onError);
-		writer.on("error", onError);
-		writer.on("close", () => { if (!failed) resolve(); });
-	});
-
-	const stats = fs.statSync(filePath);
-	if (stats.size < 1024) {
-		fs.unlink(filePath, () => {});
-		throw new Error(`Downloaded file too small (${stats.size} bytes) — corrupt ba failed download`);
-	}
-}
-
-function extractApiErrorMessage(err) {
-	const raw = err.response?.data;
-
-	if (raw && typeof raw === "object" && !Buffer.isBuffer(raw)) {
-		if (raw.error) return raw.error;
-		if (raw.message) return raw.message;
-	}
-
-	if (raw) {
-		try {
-			const text = Buffer.isBuffer(raw) ? raw.toString("utf-8") : String(raw);
-			const parsed = JSON.parse(text);
-			if (parsed?.error) return parsed.error;
-			if (parsed?.message) return parsed.message;
-		} catch (_) {}
-	}
-
-	return err.message;
-}
-
-function tempFilePath(ext) {
-	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
-	return path.join(CACHE_DIR, `sing_${Date.now()}_${Math.floor(Math.random() * 1e4)}.${ext}`);
-}
-
-async function sendWithRetry(message, msg, retries = 2) {
-	for (let i = 0; i <= retries; i++) {
-		try {
-			return await message.reply(msg);
-		} catch (err) {
-			const is408 = err?.error === 408 || String(err?.message || err).includes("408");
-			if (is408 && i < retries) {
-				console.warn(`[sing] Upload timeout, retrying (${i + 1}/${retries})...`);
-				await new Promise(r => setTimeout(r, 2000));
-				continue;
-			}
-			throw err;
-		}
-	}
-}
-
-function react(api, messageID, emoji) {
-	try {
-		api.setMessageReaction(emoji, messageID, () => {}, true);
-	} catch (_) {}
-}
-
-module.exports.config = {
-	name: "sing",
-	aliases: ["song"],
-	version: "2.0.0",
-	author: "EryXenX",
-	countDown: 5,
-	role: 0,
-	shortDescription: "YouTube theke gaan download",
-	longDescription: "Song name diye sorasori mp3 download kore pathay",
-	category: "media",
-	guide: {
-		en: "{pn} <song name>\nExample: {pn} mann mera"
-	}
-};
-
-module.exports.onStart = async function ({ api, event, args, message }) {
-	const { messageID } = event;
-	const query = args.join(" ").trim();
-
-	if (!query) {
-		return message.reply("❌ Song name den.\nExample: sing mann mera");
-	}
-
-	react(api, messageID, "⏳");
-
-	let file;
-	try {
-		const search = await yts(query);
-		const video = search.videos?.[0];
-		if (!video) {
-			react(api, messageID, "❌");
-			return message.reply(`❌ "${query}" er kono result paoa jayni`);
-		}
-
-		const info = await fetchSongInfo(video.url);
-		file = tempFilePath("mp3");
-		await streamDownloadToFile(info.downloadUrl, file);
-
-		await sendWithRetry(message, {
-			body: `🎶 ${info.title || video.title}\n🕒 ${video.timestamp}`,
-			attachment: fs.createReadStream(file)
-		});
-
-		react(api, messageID, "✅");
-	} catch (err) {
-		console.error(err);
-		react(api, messageID, "❌");
-		return message.reply("❌ Download failed: " + extractApiErrorMessage(err));
-	} finally {
-		if (file) {
-			try { fs.unlinkSync(file); } catch (e) { console.error("[sing] cleanup error:", e.message); }
-		}
-	}
+                } catch (error) {
+                        api.setMessageReaction("❌", messageID, () => {}, true);
+                        return message.reply(getLang("error", error.message));
+                }
+        }
 };
