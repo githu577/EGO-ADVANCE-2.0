@@ -1,3 +1,5 @@
+"use strict";
+
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
@@ -49,7 +51,7 @@ async function fetchCodeFromUrl(url) {
       code = $("#content").text().trim();
     }
 
-    return code;
+    return typeof code === "string" ? code : null;
   } catch {
     return null;
   }
@@ -60,11 +62,135 @@ function extractCommandName(code) {
   return nameMatch ? nameMatch[1].trim() + ".js" : null;
 }
 
+// EGO LOADING SYSTEM
+const stages = [
+  "▰▰▱▱▱▱▱▱▱▱ 20%",
+  "▰▰▰▰▱▱▱▱▱▱ 40%",
+  "▰▰▰▰▰▰▱▱▱▱ 60%",
+  "▰▰▰▰▰▰▰▰▱▱ 80%",
+  "▰▰▰▰▰▰▰▰▰▰ 100%"
+];
+
+const delay = ms =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
+async function egoLoading(api, threadID, title) {
+  let loadingID;
+
+  try {
+    const loading = await new Promise((resolve, reject) => {
+      api.sendMessage(
+        "⚡ 𝙀𝙂𝙊 𝙄𝙉𝙎𝙏𝘼𝙇𝙇 𝙇𝙊𝘼𝘿𝙄𝙉𝙂\n\n" +
+        "📂 File: " + title + "\n\n" +
+        "▰▱▱▱▱▱▱▱▱▱ 0%",
+        threadID,
+        (err, info) => {
+          if (err) return reject(err);
+          if (!info || !info.messageID) {
+            return reject(new Error("Loading message failed"));
+          }
+          resolve(info);
+        }
+      );
+    });
+
+    loadingID = loading.messageID;
+
+    for (const stage of stages) {
+      await delay(800);
+
+      await new Promise((resolve, reject) => {
+        api.editMessage(
+          "⚡ 𝙀𝙂𝙊 𝙄𝙉𝙎𝙏𝘼𝙇𝙇 𝙇𝙊𝘼𝘿𝙄𝙉𝙂\n\n" +
+          "📂 File: " + title + "\n\n" +
+          stage,
+          loadingID,
+          err => {
+            if (err) return reject(err);
+            resolve();
+          }
+        );
+      });
+    }
+
+    return loadingID;
+
+  } catch (error) {
+    if (loadingID) {
+      try {
+        api.unsendMessage(loadingID);
+      } catch (_) {}
+    }
+    throw error;
+  }
+}
+
+async function removeLoading(api, threadID, loadingID) {
+  if (!loadingID) return;
+
+  await new Promise(resolve => {
+    api.unsendMessage(loadingID, () => resolve());
+  });
+}
+
+async function installCommand(rawCode, fileName, api, threadID) {
+  let loadingID;
+
+  try {
+    loadingID = await egoLoading(api, threadID, fileName);
+
+    const filePath = path.join(
+      process.cwd(),
+      "scripts",
+      "cmds",
+      fileName
+    );
+
+    fs.ensureDirSync(path.dirname(filePath));
+    fs.writeFileSync(filePath, rawCode);
+
+    const load = global.utils.loadScripts(
+      "cmds",
+      fileName.replace(".js", ""),
+      log,
+      configCommands,
+      api
+    );
+
+    await removeLoading(api, threadID, loadingID);
+
+    if (load.status === "success") {
+      api.sendMessage(
+        "✅ 𝙀𝙂𝙊 𝙄𝙉𝙎𝙏𝘼𝙇𝙇 𝙎𝙐𝘾𝘾𝙀𝙎𝙎\n\n" +
+        "📂 File: " + fileName + "\n" +
+        "⚡ Status: Installed successfully",
+        threadID
+      );
+    } else {
+      api.sendMessage(
+        "❌ 𝙄𝙉𝙎𝙏𝘼𝙇𝙇𝘼𝙏𝙄𝙊𝙉 𝙁𝘼𝙄𝙇𝙀𝘿\n\n" +
+        "📂 File: " + fileName + "\n" +
+        "Error: " + (load.error?.message || "Unknown error"),
+        threadID
+      );
+    }
+
+  } catch (error) {
+    await removeLoading(api, threadID, loadingID).catch(() => {});
+
+    api.sendMessage(
+      "❌ EGO INSTALL ERROR\n\n" +
+      (error.message || "Unknown error"),
+      threadID
+    );
+  }
+}
+
 module.exports = {
   config: {
     name: "install",
-    version: "3.0",
-    author: "Rx Abdullah",
+    version: "4.0",
+    author: "EGO",
     countDown: 3,
     role: 2,
     hasPrefix: false,
@@ -73,20 +199,19 @@ module.exports = {
   },
 
   onStart: async function ({ args, message, event, api }) {
-
     let rawCode = "";
     let fileName = "";
 
+    // Reply install
     if (event.messageReply?.body) {
       const replyText = event.messageReply.body.trim();
       const url = extractUrlFromText(replyText);
 
       if (url) {
         rawCode = await fetchCodeFromUrl(url);
-        if (!rawCode) return message.reply(
-          "✖ Failed to fetch code from URL.\n" +
-          "Please check the link and try again."
-        );
+        if (!rawCode) {
+          return message.reply("❌ Could not fetch code from URL.");
+        }
       } else {
         rawCode = replyText;
       }
@@ -94,43 +219,55 @@ module.exports = {
       fileName = extractCommandName(rawCode);
     }
 
+    // Install raw URL
     else if (args[0] && isURL(args[0])) {
       rawCode = await fetchCodeFromUrl(args[0]);
-      if (!rawCode) return message.reply(
-        "✖ Invalid or unreachable URL.\n" +
-        "Make sure the link is accessible and try again."
-      );
+
+      if (!rawCode) {
+        return message.reply("❌ Invalid or unreachable URL.");
+      }
 
       fileName = extractCommandName(rawCode);
     }
 
+    // Install filename.js code
     else if (args.length >= 2 && args[0].endsWith(".js")) {
       fileName = args[0];
       rawCode = args.slice(1).join(" ");
     }
 
-    if (!rawCode)
+    if (!rawCode) {
       return message.reply(
-        "⚠ No code provided.\n\n" +
-        "Usage:\n" +
-        "• Reply to a message containing code or URL\n" +
-        "• Provide a raw URL directly\n" +
-        "• install <name.js> <code>"
+        "⚠ Provide code, reply to code, or give a raw URL."
       );
+    }
 
-    if (!fileName)
-      return message.reply(
-        "✖ Could not detect command name.\n" +
-        "Make sure the code has a valid name field."
-      );
+    if (!fileName) {
+      return message.reply("❌ Could not detect command name.");
+    }
 
-    const filePath = path.join(process.cwd(), "scripts", "cmds", fileName);
+    if (
+      path.basename(fileName) !== fileName ||
+      !fileName.endsWith(".js") ||
+      fileName === ".js"
+    ) {
+      return message.reply("❌ Invalid file name.");
+    }
 
+    const filePath = path.join(
+      process.cwd(),
+      "scripts",
+      "cmds",
+      fileName
+    );
+
+    // Overwrite protection
     if (fs.existsSync(filePath)) {
       return message.reply(
-        `⚠ ${fileName} already exists.\n\n` +
-        "React to this message to overwrite and reinstall.",
+        `⚠ ${fileName} already exists.\nReact 👍 to overwrite.`,
         (err, info) => {
+          if (err || !info) return;
+
           global.GoatBot.onReaction.set(info.messageID, {
             commandName: "install",
             author: event.senderID,
@@ -140,57 +277,24 @@ module.exports = {
       );
     }
 
-    fs.writeFileSync(filePath, rawCode);
-
-    const load = global.utils.loadScripts(
-      "cmds",
-      fileName.replace(".js", ""),
-      log,
-      configCommands,
-      api
+    await installCommand(
+      rawCode,
+      fileName,
+      api,
+      event.threadID
     );
-
-    if (load.status === "success") {
-      return message.reply(
-        `✅ Installed: ${fileName}\n` +
-        `📌 Status: Loaded & Ready`
-      );
-    } else {
-      return message.reply(
-        `✖ Installation failed: ${fileName}\n` +
-        `⚠ Error: ${load.error?.message || "Unknown error"}`
-      );
-    }
   },
 
-  onReaction: async function ({ Reaction, event, message, api }) {
-
+  onReaction: async function ({ Reaction, event, api }) {
     if (event.userID !== Reaction.author) return;
 
     const { rawCode, fileName } = Reaction.data;
 
-    const filePath = path.join(process.cwd(), "scripts", "cmds", fileName);
-
-    fs.writeFileSync(filePath, rawCode);
-
-    const load = global.utils.loadScripts(
-      "cmds",
-      fileName.replace(".js", ""),
-      log,
-      configCommands,
-      api
+    await installCommand(
+      rawCode,
+      fileName,
+      api,
+      event.threadID
     );
-
-    if (load.status === "success") {
-      message.reply(
-        `✅ Overwritten & Reloaded: ${fileName}\n` +
-        `📌 Status: Loaded & Ready`
-      );
-    } else {
-      message.reply(
-        `✖ Overwrite failed: ${fileName}\n` +
-        `⚠ Error: ${load.error?.message || "Unknown error"}`
-      );
-    }
   }
 };
