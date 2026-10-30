@@ -1,71 +1,98 @@
 const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
+
+const baseApiUrl = async () => {
+        const base = await axios.get("https://raw.githubusercontent.com/aura-mahmud/HINATA/main/baseApiUrl.json");
+        return base.data.mahmud;
+};
 
 module.exports = {
-  config: {
-    name: "edit2",
-    aliases: ["e"],
-    version: "0.0.7",
-    author: "𝐌𝙴ʜ𝐄ᴅ𝐈",
-    countDown: 25, // Updated to 25 seconds
-    role: 0,
-    shortDescription: "Edit image",
-    longDescription: "Reply to any image",
-    category: "image",
-    guide: "{pn} [text]"
-  },
+        config: {
+                name: "edit",
+                aliases: ["imgedit"],
+                version: "1.7",
+                author: "MahMUD", // credit Change dile thapramu kintu.
+                countDown: 10,
+                role: 0,
+                description: {
+                        bn: "এআই এর মাধ্যমে আপনার ছবি এডিট করুন",
+                        en: "Edit your image using AI prompt",
+                        vi: "Chỉnh sửa hình ảnh của bạn bằng lời nhắc AI"
+                },
+                category: "image",
+                guide: {
+                        bn: '   {pn} <প্রম্পট>: ছবির রিপ্লাই দিয়ে এডিট প্রম্পট লিখুন'
+                                + '\n   উদাহরণ: {pn} change hair color to red',
+                        en: '   {pn} <prompt>: Reply to an image with edit instructions'
+                                + '\n   Example: {pn} add sunglasses to face',
+                        vi: '   {pn} <lời nhắc>: Phản hồi ảnh kèm hướng dẫn chỉnh sửa'
+                                + '\n   Ví dụ: {pn} đổi màu tóc thành đỏ'
+                }
+        },
 
-  onStart: async function ({ api, event, args, message, usersData }) {
-    const { senderID, messageReply } = event;
+        langs: {
+                bn: {
+                        noInput: "× বেবি, একটি ছবিতে রিপ্লাই দিয়ে বলো কি এডিট করতে হবে! 🪄",
+                        wait: "🔄 | তোমার ছবি এডিট করা হচ্ছে, একটু অপেক্ষা করো বেবি...",
+                        success: "✅ | তোমার এডিট করা ছবি তৈরি: \"%1\"",
+                        error: "× এডিট করতে সমস্যা হয়েছে: %1। প্রয়োজনে Contact MahMUD।\n•WhatsApp: 01836298139"
+                },
+                en: {
+                        noInput: "× Baby, please reply to a photo with your prompt to edit it! 🪄",
+                        wait: "🔄 | Editing your image, please wait...",
+                        success: "✅ Here's your Edited image\nPrompt: %1",
+                        error: "× Failed to edit: %1. Contact MahMUD for help.\n•WhatsApp: 01836298139"
+                },
+                vi: {
+                        noInput: "× Cưng ơi, vui lòng phản hồi ảnh kèm lời nhắc chỉnh sửa! 🪄",
+                        wait: "🔄 | Đang chỉnh sửa ảnh, vui lòng chờ chút nhé...",
+                        success: "✅ | Ảnh đã chỉnh sửa cho: \"%1\"",
+                        error: "× Lỗi chỉnh sửa: %1. Liên hệ MahMUD để hỗ trợ.\n•WhatsApp: 01836298139"
+                }
+        },
 
-    /* ===== VIP & PERMISSION CHECK ===== */
-    const ADMINS = global.GoatBot?.config?.adminBot || [];
-    const isBotAdmin = ADMINS.includes(senderID);
+        onStart: async function ({ api, event, args, message, getLang }) {
+                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
+                if (this.config.author !== authorName) {
+                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+                }
 
-    if (!isBotAdmin) {
-      const userData = await usersData.get(senderID);
-      const vip = userData?.data?.vip;
+                const prompt = args.join(" ");
+                const repliedImage = event.messageReply?.attachments?.[0];
 
-      if (!vip || !vip.expires || vip.expires < Date.now()) {
-        return api.sendMessage("❌ 𝐕𝐈𝐏 𝐎𝐍𝐋𝐘 𝐂𝐎𝐌𝐌𝐀𝐍𝐃\n" +
-          "• 𝐎𝐧𝐥𝐲 𝐕𝐈𝐏 𝐮𝐬𝐞𝐫𝐬 𝐜𝐚𝐧 𝐮𝐬𝐞 𝐞𝐝𝐢𝐭\n" +
-          "• 𝐓𝐲𝐩𝐞: vip buy", event.threadID, event.messageID);
-      }
-    }
+                if (!prompt || !repliedImage || repliedImage.type !== "photo") {
+                        return message.reply(getLang("noInput"));
+                }
 
-    const react = (emoji) => api.setMessageReaction(emoji, event.messageID, () => {}, true);
+                const cacheDir = path.join(__dirname, "cache");
+                const imgPath = path.join(cacheDir, `${Date.now()}_edit.jpg`);
+                await fs.ensureDir(cacheDir);
 
-    try {
-      const prompt = args.join(" ");
+                const waitMsg = await message.reply(getLang("wait"));
 
-      if (!prompt) {
-        react("⚠️");
-        return api.sendMessage("⚠️ | Please provide text.", event.threadID);
-      }
+                try {
+                        const res = await axios.post(
+                                `${await baseApiUrl()}/api/edit`,
+                                { prompt, imageUrl: repliedImage.url },
+                                { responseType: "arraybuffer" }
+                        );
 
-      const imageUrl = messageReply?.attachments[0]?.url;
+                        await fs.writeFile(imgPath, Buffer.from(res.data, "binary"));
 
-      if (!imageUrl) {
-        react("🖼️");
-        return api.sendMessage("🖼️ | Please reply to an image.", event.threadID);
-      }
+                        await message.reply({
+                                body: getLang("success", prompt),
+                                attachment: fs.createReadStream(imgPath)
+                        });
 
-      react("⏳");
-
-      const apiUrl = `https://azadx69x.is-a.dev/api/editor?url=${encodeURIComponent(imageUrl)}&prompt=${encodeURIComponent(prompt)}`;
-
-      const response = await axios.get(apiUrl, { responseType: "stream" });
-
-      react("✅");
-
-      api.sendMessage({
-        body: `🖌 𝐈𝐦𝐚𝐠𝐞 𝐞𝐝𝐢𝐭𝐞𝐝 𝐬𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲.\n𝐏𝐫𝐨𝐦𝐩𝐭: ${prompt}`,
-        attachment: response.data
-      }, event.threadID, messageReply?.messageID);
-
-    } catch (error) {
-      console.error(error);
-      react("❌");
-      api.sendMessage("❌ | Failed to process image.", event.threadID);
-    }
-  }
+                } catch (err) {
+                        console.error("Edit Command Error:", err);
+                        return message.reply(getLang("error", err.message));
+                } finally {
+                        if (waitMsg?.messageID) api.unsendMessage(waitMsg.messageID);
+                        setTimeout(() => {
+                                if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+                        }, 10000);
+                }
+        }
 };
