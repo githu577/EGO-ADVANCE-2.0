@@ -1,98 +1,282 @@
+
+"use strict";
+
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
 
-const baseApiUrl = async () => {
-        const base = await axios.get("https://raw.githubusercontent.com/aura-mahmud/HINATA/main/baseApiUrl.json");
-        return base.data.mahmud;
+const API_CONFIG_URL =
+  "https://raw.githubusercontent.com/aura-mahmud/HINATA/main/baseApiUrl.json";
+
+const API_TIMEOUT = 180000;
+
+const getBaseApiUrl = async () => {
+  const response = await axios.get(API_CONFIG_URL, {
+    timeout: 15000
+  });
+
+  const apiUrl = response.data?.mahmud;
+
+  if (!apiUrl || typeof apiUrl !== "string") {
+    throw new Error("API URL পাওয়া যায়নি");
+  }
+
+  return apiUrl.replace(/\/+$/, "");
+};
+
+const getImageUrl = (attachment) => {
+  if (!attachment || attachment.type !== "photo") {
+    return null;
+  }
+
+  return attachment.url || null;
+};
+
+const getErrorMessage = (error) => {
+  if (error.response?.data) {
+    const data = error.response.data;
+
+    if (Buffer.isBuffer(data)) {
+      return data.toString("utf8").slice(0, 500);
+    }
+
+    if (typeof data === "string") {
+      return data.slice(0, 500);
+    }
+
+    return JSON.stringify(data).slice(0, 500);
+  }
+
+  return error.message || "Unknown error";
 };
 
 module.exports = {
-        config: {
-                name: "edit",
-                aliases: ["imgedit"],
-                version: "1.7",
-                author: "MahMUD", // credit Change dile thapramu kintu.
-                countDown: 10,
-                role: 0,
-                description: {
-                        bn: "এআই এর মাধ্যমে আপনার ছবি এডিট করুন",
-                        en: "Edit your image using AI prompt",
-                        vi: "Chỉnh sửa hình ảnh của bạn bằng lời nhắc AI"
-                },
-                category: "image",
-                guide: {
-                        bn: '   {pn} <প্রম্পট>: ছবির রিপ্লাই দিয়ে এডিট প্রম্পট লিখুন'
-                                + '\n   উদাহরণ: {pn} change hair color to red',
-                        en: '   {pn} <prompt>: Reply to an image with edit instructions'
-                                + '\n   Example: {pn} add sunglasses to face',
-                        vi: '   {pn} <lời nhắc>: Phản hồi ảnh kèm hướng dẫn chỉnh sửa'
-                                + '\n   Ví dụ: {pn} đổi màu tóc thành đỏ'
-                }
+  config: {
+    name: "edit",
+    aliases: ["imgedit", "aiedit"],
+    version: "3.0.0",
+    author: "EGO",
+    countDown: 10,
+    role: 0,
+
+    description: {
+      bn: "Premium AI Image Editing",
+      en: "Premium AI Image Editing",
+      vi: "Chỉnh sửa ảnh AI Premium"
+    },
+
+    category: "image",
+
+    guide: {
+      bn:
+        "{pn} <prompt>\n" +
+        "ছবিতে Reply দিয়ে বাংলা বা English prompt লিখুন\n\n" +
+        "Example:\n" +
+        "{pn} ছবিটা cinematic 4K করে দাও\n" +
+        "{pn} Add RGB neon lighting",
+
+      en:
+        "{pn} <prompt>\n" +
+        "Reply to an image with Bengali or English instructions\n\n" +
+        "Example:\n" +
+        "{pn} Make this image cinematic 4K\n" +
+        "{pn} Add RGB neon lighting",
+
+      vi:
+        "{pn} <prompt>\n" +
+        "Reply to an image with editing instructions"
+    }
+  },
+
+  langs: {
+    bn: {
+      noInput:
+        "⚠️ | একটি ছবিতে Reply দিয়ে বাংলা অথবা English prompt লিখুন!",
+
+      wait:
+        "╭━━━〔 ⚡ EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ 🖼️ Image Processing...\n" +
+        "┃ ✨ Premium AI Editing\n" +
+        "┃ 🔄 Please Wait...\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯",
+
+      success:
+        "╭━━━〔 👑 EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ ✅ Premium Editing Complete\n" +
+        "┃\n" +
+        "┃ 📝 Prompt: %1\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯",
+
+      error:
+        "╭━━━〔 ❌ EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ Editing Failed!\n" +
+        "┃ Error: %1\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯"
+    },
+
+    en: {
+      noInput:
+        "⚠️ | Reply to an image with a Bengali or English prompt!",
+
+      wait:
+        "╭━━━〔 ⚡ EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ 🖼️ Image Processing...\n" +
+        "┃ ✨ Premium AI Editing\n" +
+        "┃ 🔄 Please Wait...\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯",
+
+      success:
+        "╭━━━〔 👑 EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ ✅ Premium Editing Complete\n" +
+        "┃\n" +
+        "┃ 📝 Prompt: %1\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯",
+
+      error:
+        "╭━━━〔 ❌ EGO AI EDIT 〕━━━╮\n" +
+        "┃\n" +
+        "┃ Editing Failed!\n" +
+        "┃ Error: %1\n" +
+        "┃\n" +
+        "╰━━━━━━━━━━━━━━━━━━━━╯"
+    },
+
+    vi: {
+      noInput:
+        "Reply to an image with a Bengali or English prompt!",
+
+      wait:
+        "⚡ EGO AI EDIT\n" +
+        "🖼️ Image Processing...\n" +
+        "✨ Premium AI Editing\n" +
+        "🔄 Please Wait...",
+
+      success:
+        "✅ Premium Editing Complete\n" +
+        "Prompt: %1",
+
+      error:
+        "❌ Editing Failed: %1"
+    }
+  },
+
+  onStart: async function ({
+    api,
+    event,
+    args,
+    message,
+    getLang
+  }) {
+    const prompt = args.join(" ").trim();
+
+    const repliedImage = getImageUrl(
+      event.messageReply?.attachments?.[0]
+    );
+
+    if (!prompt || !repliedImage) {
+      return message.reply(getLang("noInput"));
+    }
+
+    const cacheDir = path.join(__dirname, "cache");
+
+    const imgPath = path.join(
+      cacheDir,
+      `ego_edit_${Date.now()}.jpg`
+    );
+
+    let waitMsg;
+
+    try {
+      await fs.ensureDir(cacheDir);
+
+      waitMsg = await message.reply(
+        getLang("wait")
+      );
+
+      const baseUrl = await getBaseApiUrl();
+
+      const response = await axios.post(
+        `${baseUrl}/api/edit`,
+        {
+          prompt: prompt,
+          imageUrl: repliedImage
         },
+        {
+          responseType: "arraybuffer",
+          timeout: API_TIMEOUT,
 
-        langs: {
-                bn: {
-                        noInput: "× বেবি, একটি ছবিতে রিপ্লাই দিয়ে বলো কি এডিট করতে হবে! 🪄",
-                        wait: "🔄 | তোমার ছবি এডিট করা হচ্ছে, একটু অপেক্ষা করো বেবি...",
-                        success: "✅ | তোমার এডিট করা ছবি তৈরি: \"%1\"",
-                        error: "× এডিট করতে সমস্যা হয়েছে: %1। প্রয়োজনে Contact MahMUD।\n•WhatsApp: 01836298139"
-                },
-                en: {
-                        noInput: "× Baby, please reply to a photo with your prompt to edit it! 🪄",
-                        wait: "🔄 | Editing your image, please wait...",
-                        success: "✅ Here's your Edited image\nPrompt: %1",
-                        error: "× Failed to edit: %1. Contact MahMUD for help.\n•WhatsApp: 01836298139"
-                },
-                vi: {
-                        noInput: "× Cưng ơi, vui lòng phản hồi ảnh kèm lời nhắc chỉnh sửa! 🪄",
-                        wait: "🔄 | Đang chỉnh sửa ảnh, vui lòng chờ chút nhé...",
-                        success: "✅ | Ảnh đã chỉnh sửa cho: \"%1\"",
-                        error: "× Lỗi chỉnh sửa: %1. Liên hệ MahMUD để hỗ trợ.\n•WhatsApp: 01836298139"
-                }
-        },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "image/jpeg, image/png, image/webp"
+          },
 
-        onStart: async function ({ api, event, args, message, getLang }) {
-                const authorName = String.fromCharCode(77, 97, 104, 77, 85, 68);
-                if (this.config.author !== authorName) {
-                        return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
-                }
-
-                const prompt = args.join(" ");
-                const repliedImage = event.messageReply?.attachments?.[0];
-
-                if (!prompt || !repliedImage || repliedImage.type !== "photo") {
-                        return message.reply(getLang("noInput"));
-                }
-
-                const cacheDir = path.join(__dirname, "cache");
-                const imgPath = path.join(cacheDir, `${Date.now()}_edit.jpg`);
-                await fs.ensureDir(cacheDir);
-
-                const waitMsg = await message.reply(getLang("wait"));
-
-                try {
-                        const res = await axios.post(
-                                `${await baseApiUrl()}/api/edit`,
-                                { prompt, imageUrl: repliedImage.url },
-                                { responseType: "arraybuffer" }
-                        );
-
-                        await fs.writeFile(imgPath, Buffer.from(res.data, "binary"));
-
-                        await message.reply({
-                                body: getLang("success", prompt),
-                                attachment: fs.createReadStream(imgPath)
-                        });
-
-                } catch (err) {
-                        console.error("Edit Command Error:", err);
-                        return message.reply(getLang("error", err.message));
-                } finally {
-                        if (waitMsg?.messageID) api.unsendMessage(waitMsg.messageID);
-                        setTimeout(() => {
-                                if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-                        }, 10000);
-                }
+          maxContentLength: 30 * 1024 * 1024,
+          maxBodyLength: 30 * 1024 * 1024
         }
+      );
+
+      const contentType =
+        response.headers?.["content-type"] || "";
+
+      if (
+        !contentType.startsWith("image/") &&
+        !Buffer.isBuffer(response.data)
+      ) {
+        throw new Error("API did not return an image");
+      }
+
+      const imageBuffer = Buffer.from(response.data);
+
+      if (!imageBuffer.length) {
+        throw new Error("Generated image is empty");
+      }
+
+      await fs.writeFile(
+        imgPath,
+        imageBuffer
+      );
+
+      await message.reply({
+        body: getLang("success", prompt),
+        attachment: fs.createReadStream(imgPath)
+      });
+
+    } catch (error) {
+      console.error(
+        "[EGO AI EDIT ERROR]",
+        error
+      );
+
+      return message.reply(
+        getLang("error", getErrorMessage(error))
+      );
+
+    } finally {
+      if (waitMsg?.messageID) {
+        try {
+          await api.unsendMessage(
+            waitMsg.messageID
+          );
+        } catch (_) {}
+      }
+
+      setTimeout(async () => {
+        try {
+          if (await fs.pathExists(imgPath)) {
+            await fs.unlink(imgPath);
+          }
+        } catch (_) {}
+      }, 15000);
+    }
+  }
 };
