@@ -301,16 +301,16 @@ function getVisitorId() {
   return _visitorId;
 }
 
-// 👑 ULTRA PREMIUM EGO GOATSTORE ANIMATIONS
+// 🔥 EXTREME ATTITUDE EGO ANIMATIONS WITH ☠️ EMOJI
 async function animateInstall(api, threadID, name) {
   const steps = [
-    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▱▱▱▱▱▱▱ 20%\n🌐 𝙄𝙣𝙞𝙩𝙞𝙖𝙡𝙞𝙯𝙞𝙣𝙜 [ ${name} ]...`, delay: 500 },
-    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▱▱▱▱▱ 40%\n📥 𝙁𝙚𝙩𝙘𝙝𝙞𝙣𝙜 𝙎𝙤𝙪𝙧𝙘𝙚 𝙋𝙖𝙘𝙠𝙖𝙜𝙚...`, delay: 600 },
-    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▱▱▱ 60%\n🛡️ 𝙑𝙚𝙧𝙞𝙛𝙮𝙞𝙣𝙜 𝙎𝙚𝙘𝙪𝙧𝙞𝙩𝙮 𝘾𝙝𝙚𝙘𝙠𝙨...`, delay: 700 },
-    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▱ 80%\n💾 𝙒𝙧𝙞𝙩𝙞𝙣𝙜 𝙈𝙤𝙙𝙪𝙡𝙚 𝙩𝙤 𝘿𝙞𝙨𝙠...`, delay: 600 },
-    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▰ 100%\n🚀 𝙄𝙣𝙨𝙩𝙖𝙡𝙡𝙖𝙩𝙞𝙤𝙣 𝘾𝙤𝙢𝙥𝙡𝙚𝙩𝙚!`, delay: 500 },
+    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▱▱▱▱▱▱▱ 20%\n☠️ 𝙄𝙣𝙞𝙩𝙞𝙖𝙡𝙞𝙯𝙞𝙣𝙜 [ ${name} ]...`, delay: 500 },
+    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▱▱▱▱▱ 40%\n☠️ 𝙁𝙚𝙩𝙘𝙝𝙞𝙣𝙜 𝙎𝙤𝙪𝙧𝙘𝙚 𝙋𝙖𝙘𝙠𝙖𝙜𝙚...`, delay: 600 },
+    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▱▱▱ 60%\n☠️ 𝙑𝙚𝙧𝙞𝙛𝙮𝙞𝙣𝙜 𝙎𝙚𝙘𝙪𝙧𝙞𝙩𝙮...`, delay: 700 },
+    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▱ 80%\n☠️ 𝙒𝙧𝙞𝙩𝙞𝙣𝙜 𝙈𝙤𝙙𝙪𝙡𝙚 𝙩𝙤 𝘿𝙞𝙨𝙠...`, delay: 600 },
+    { text: `⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▰ 100%\n☠️ 𝙄𝙣𝙨𝙩𝙖𝙡𝙡𝙖𝙩𝙞𝙤𝙣 𝘾𝙤𝙢𝙥𝙡𝙚𝙩𝙚!`, delay: 500 },
   ];
-  const info = await api.sendMessage(`⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▱▱▱▱▱▱▱▱▱ 0%\n🔮 𝙋𝙧𝙚𝙥𝙖𝙧𝙞𝙣𝙜 𝙄𝙣𝙨𝙩𝙖𝙡𝙡𝙖𝙩𝙞𝙤𝙣...`, threadID);
+  const info = await api.sendMessage(`⚡ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▱▱▱▱▱▱▱▱▱ 0%\n☠️ 𝙋𝙧𝙚𝙥𝙖𝙧𝙞𝙣𝙜 𝙄𝙣𝙨𝙩𝙖𝙡𝙡𝙖𝙩𝙞𝙤𝙣...`, threadID);
   for (let i = 0; i < steps.length; i++) {
     await new Promise(r => setTimeout(r, steps[i].delay));
     await api.editMessage(steps[i].text, info.messageID);
@@ -320,11 +320,11 @@ async function animateInstall(api, threadID, name) {
 
 async function animateUpload(api, threadID, name) {
   const steps = [
-    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▱▱▱▱▱▱▱ 30%\n📖 𝘼𝙣𝙖𝙡𝙮𝙯𝙞𝙣𝙜 𝙎𝙤𝙪𝙧𝙘𝙚 𝙁𝙞𝙡𝙚...`, delay: 500 },
-    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▱▱▱ 70%\n📤 𝙎𝙮𝙣𝙘𝙞𝙣𝙜 𝙬𝙞𝙩𝙝 𝘾𝙡𝙤𝙪𝙙...`, delay: 700 },
-    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▰ 100%\n✨ 𝙐𝙥𝙡𝙤𝙖𝙙 𝙍𝙚𝙜𝙞𝙨𝙩𝙚𝙧𝙚𝙙!`, delay: 500 },
+    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▱▱▱▱▱▱▱ 30%\n☠️ 𝘼𝙣𝙖𝙡𝙮𝙯𝙞𝙣𝙜 𝙎𝙤𝙪𝙧𝙘𝙚...`, delay: 500 },
+    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▱▱▱ 70%\n☠️ 𝙎𝙮𝙣𝙘𝙞𝙣𝙜 𝙬𝙞𝙩𝙝 𝘾𝙡𝙤𝙪𝙙...`, delay: 700 },
+    { text: `👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▰▰▰▰▰▰▰▰▰ 100%\n☠️ 𝙐𝙥𝙡𝙤𝙖𝙙 𝙍𝙚𝙜𝙞𝙨𝙩𝙚𝙧𝙚𝙙!`, delay: 500 },
   ];
-  const info = await api.sendMessage(`👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▱▱▱▱▱▱▱▱▱ 0%\n🔮 𝙋𝙧𝙚𝙥𝙖𝙧𝙞𝙣𝙜 𝙐𝙥𝙡𝙤𝙖𝙙...`, threadID);
+  const info = await api.sendMessage(`👑 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀\n▰▱▱▱▱▱▱▱▱▱ 0%\n☠️ 𝙋𝙧𝙚𝙥𝙖𝙧𝙞𝙣𝙜 𝙐𝙥𝙡𝙤𝙖𝙙...`, threadID);
   for (let i = 0; i < steps.length; i++) {
     await new Promise(r => setTimeout(r, steps[i].delay));
     await api.editMessage(steps[i].text, info.messageID);
@@ -355,7 +355,7 @@ const CAT_ICONS = {
   games: "🎮", utility: "⚙️", ai: "🤖",
 };
 function catBadge(cmd) {
-  const icon = CAT_ICONS[cmd.category] || "📦";
+  const icon = CAT_ICONS[cmd.category] || "☠️";
   return `${icon} ${cmd.category || "uncategorized"}`;
 }
 
@@ -423,16 +423,18 @@ async function doInstall(api, threadID, id, forceKind = null) {
   const load = isEvent ? { success: false } : autoloadCommand(filePath);
   apiCountInstall(cmd._id || id);
 
+  // ☠️ Boss Attitude Font Message After Successful Install
   const msg =
-    `👑 𝙄𝙣𝙨𝙩𝙖𝙡𝙡𝙚𝙙 𝙎𝙪𝙘𝙘𝙚𝙨𝙨𝙛𝙪𝙡𝙡𝙮!\n` +
-    `╭─‣ 𝙉𝙖𝙢𝙚 : ${cmd.name || "Unknown"}\n` +
+    `☠️ 𝘽𝙊𝙎𝙎 𝘼𝙋𝙉𝘼𝙍 𝙁𝙄𝙇𝙀 𝙄𝙉𝙎𝙏𝘼𝙇𝙇 𝙃𝙊𝙄𝘾𝙀! 👑\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `╭─‣ 𝙁𝙞𝙡𝙚 𝙉𝙖𝙢𝙚 : ${cmd.name || "Unknown"}\n` +
     `├‣ 𝘼𝙪𝙩𝙝𝙤𝙧 : ${cmd.author || "Unknown"}\n` +
     `├‣ 𝘾𝙖𝙩𝙚𝙜𝙤𝙧𝙮 : ${catBadge(cmd)}\n` +
     `├‣ 𝙄𝘿 : ${displayId(cmd)}\n` +
     `├‣ 𝙇𝙤𝙘𝙖𝙩𝙞𝙤𝙣 : ${locLabel}\n` +
     `╰──────────────◊\n` +
     (load.success
-      ? `🚀 "${load.name}" 𝙞𝙨 𝙣𝙤𝙬 𝙡𝙞𝙫𝙚! 𝙉𝙤 𝙧𝙚𝙨𝙩𝙖𝙧𝙩 𝙣𝙚𝙚𝙙𝙚𝙙.`
+      ? `🔥 "${load.name}" 𝙞𝙨 𝙣𝙤𝙬 𝙡𝙞𝙫𝙚 𝙖𝙣𝙙 𝙧𝙚𝙖𝙙𝙮 𝙩𝙤 𝙧𝙤𝙘𝙠, 𝘽𝙤𝙨𝙨!`
       : isEvent
       ? `⚠️ 𝙀𝙫𝙚𝙣𝙩 𝙨𝙖𝙫𝙚𝙙. 𝙍𝙚𝙨𝙩𝙖𝙧𝙩 𝙗𝙤𝙩 𝙩𝙤 𝙖𝙥𝙥𝙡𝙮.`
       : `⚠️ 𝘼𝙪𝙩𝙤𝙡𝙤𝙖𝙙 𝙛𝙖𝙞𝙡𝙚𝙙: ${load.reason}`);
@@ -440,7 +442,6 @@ async function doInstall(api, threadID, id, forceKind = null) {
   if (pid) {
     try {
       await api.editMessage(msg, pid);
-      setTimeout(() => api.unsendMessage(pid).catch(() => {}), 6000);
     } catch (_) { api.sendMessage(msg, threadID); }
   } else {
     api.sendMessage(msg, threadID);
@@ -466,13 +467,12 @@ async function doUpload(api, threadID, filePath, kind = "command") {
     if (result._duplicate) {
       if (pid) api.unsendMessage(pid).catch(() => {});
       return api.sendMessage(
-        `⚠️ 𝘾𝙤𝙢𝙢𝙖𝙣𝙙 𝘼𝙡𝙧𝙚𝙖𝙙𝙮 𝙀𝙭𝙞𝙨𝙩𝙨!\n` +
+        `☠️ 𝘾𝙤𝙢𝙢𝙖𝙣𝙙 𝘼𝙡𝙧𝙚𝙖𝙙𝙮 𝙀𝙭𝙞𝙨𝙩𝙨, 𝘽𝙤𝙨𝙨!\n` +
         `╭─‣ 𝙉𝙖𝙢𝙚 : ${name}\n` +
         `├‣ 𝘼𝙪𝙩𝙝𝙤𝙧 : ${author}\n` +
         `├‣ 𝙑𝙚𝙧𝙨𝙞𝙤𝙣 : v${version}\n` +
         `├‣ 𝙄𝘿 : ${displayId(result)}\n` +
-        `╰──────────────◊\n` +
-        `💡 "${name}" 𝙗𝙮 ${author} v${version} 𝙞𝙨 𝙖𝙡𝙧𝙚𝙖𝙙𝙮 𝙞𝙣 𝙨𝙩𝙤𝙧𝙚.`,
+        `╰──────────────◊`,
         threadID
       );
     }
@@ -491,29 +491,15 @@ async function doUpload(api, threadID, filePath, kind = "command") {
     let rawUrl = result.pastebin_url || null;
     if (!rawUrl && newId && code) rawUrl = await getRawLink({ ...result, code });
 
-    const sameNameCount = result._sameNameCount || 0;
-
-    let statusLine, footerLine;
-    if (isUpdated) {
-      statusLine = `♻️ 𝘾𝙤𝙢𝙢𝙖𝙣𝙙 𝙐𝙥𝙙𝙖𝙩𝙚𝙙!`;
-      footerLine = `🔄 "${name}" 𝙗𝙮 ${author} 𝙪𝙥𝙙𝙖𝙩𝙚𝙙 𝙩𝙤 v${version}.\n📅 𝙐𝙥𝙙𝙖𝙩𝙚𝙙: ${new Date().toDateString()}`;
-    } else {
-      statusLine = `✨ 𝙐𝙥𝙡𝙤𝙖𝙙 𝙎𝙪𝙘𝙘𝙚𝙨𝙨𝙛𝙪𝙡!`;
-      footerLine = sameNameCount > 0
-        ? `📌 ${sameNameCount} 𝙤𝙩𝙝𝙚𝙧(𝙨) 𝙪𝙨𝙚 𝙣𝙖𝙢𝙚 "${name}".\n📅 𝙐𝙥𝙡𝙤𝙖𝙙𝙚𝙙: ${new Date().toDateString()}`
-        : `📅 𝙐𝙥𝙡𝙤𝙖𝙙𝙚𝙙: ${new Date().toDateString()}`;
-    }
-
     const msg =
-      `👑 ${statusLine}\n` +
+      `☠️ 𝘽𝙊𝙎𝙎 𝙐𝙋𝙇𝙊𝘼𝘿 𝙎𝙐𝘾𝘾𝙀𝙎𝙎𝙁𝙐𝙇! 🔥\n` +
       `╭─‣ 𝙉𝙖𝙢𝙚 : ${name}\n` +
       `├‣ 𝘾𝙖𝙩𝙚𝙜𝙤𝙧𝙮 : ${catBadge({ category })}\n` +
       `├‣ 𝘼𝙪𝙩𝙝𝙤𝙧 : ${author}\n` +
       `├‣ 𝙑𝙚𝙧𝙨𝙞𝙤𝙣 : v${version}\n` +
       `├‣ 𝙄𝘿 : ${displayId(result) !== "N/A" ? displayId(result) : (newId || "N/A")}\n` +
       (rawUrl ? `├‣ 𝙍𝙖𝙬 𝙇𝙞𝙣𝙠 : ${rawUrl}\n` : "") +
-      `╰──────────────◊\n` +
-      footerLine;
+      `╰──────────────◊`;
 
     if (pid) {
       try { await api.editMessage(msg, pid); }
@@ -569,9 +555,7 @@ async function doSelfUpdateSilent(api, threadID, selfUpdate) {
       const msg =
         `♻️ 𝘼𝙪𝙩𝙤-𝙐𝙥𝙙𝙖𝙩𝙚𝙙 𝙀𝙂𝙊 𝙂𝙤𝙖𝙩𝙎𝙩𝙤𝙧𝙚!\n` +
         `╭─‣ 𝙑𝙚𝙧𝙨𝙞𝙤𝙣 : v${cmd.version || selfUpdate.latestVersion}\n` +
-        `╰──────────────◊\n` +
-        `📝 ${(cmd.description || "No changelog.").trim()}\n\n` +
-        (load.success ? `🚀 𝙇𝙞𝙫𝙚 𝙣𝙤𝙬!` : `⚠️ 𝙍𝙚𝙨𝙩𝙖𝙧𝙩 𝙗𝙤𝙩 𝙩𝙤 𝙖𝙥𝙥𝙡𝙮.`);
+        `╰──────────────◊\n`;
       api.sendMessage(msg, threadID).catch(() => {});
     }
     return true;
@@ -588,32 +572,26 @@ async function maybeAutoUpdate(api, threadID) {
 }
 
 let _syncRunning = false;
-const _warned401 = new Set();
 
 async function runAutoSync() {
   const summary = { uploaded: 0, updated: 0, duplicates: 0, unchanged: 0, errors: 0, busy: false };
-
   if (_syncRunning) { summary.busy = true; return summary; }
   _syncRunning = true;
-
   try {
     const folders = [
       { dir: getCmdsDir(),    kind: "command" },
       { dir: getEventsDir(),  kind: "event" },
     ].filter(f => f.dir && fs.existsSync(f.dir));
-
     if (!folders.length) return summary;
     const cache = loadJson(SYNC_CACHE_PATH, {});
 
     for (const { dir, kind } of folders) {
       let files = [];
       try { files = fs.readdirSync(dir).filter(f => f.endsWith(".js")); } catch (_) { continue; }
-
       for (const file of files) {
         const fullPath = path.join(dir, file);
         let code;
         try { code = fs.readFileSync(fullPath, "utf8"); } catch (_) { continue; }
-
         try { new Function(code); } catch (_) { continue; }
         if (detectFramework(code) !== "goat") continue;
 
@@ -630,14 +608,10 @@ async function runAutoSync() {
           } else if (!result.error) {
             cache[cacheKey] = { hash, id: result._id || result.id };
             if (result._updated) summary.updated++; else summary.uploaded++;
-          } else if (result._status === 401) {
-            summary.unchanged++;
           } else {
             summary.errors++;
           }
-        } catch (_) {
-          summary.errors++;
-        }
+        } catch (_) { summary.errors++; }
         await new Promise(r => setTimeout(r, 600));
       }
     }
@@ -684,7 +658,7 @@ function paginateArray(arr, page, limit) {
 
 function renderCmdRow(cmd) {
   return (
-    `╭─‣ ${cmd.kind === "event" ? "⚡" : "🧩"} 𝙁𝙞𝙡𝙚 : ${cmd.name} 〄\n` +
+    `╭─‣ ${cmd.kind === "event" ? "⚡" : "☠️"} 𝙁𝙞𝙡𝙚 : ${cmd.name} 〄\n` +
     `├‣ 𝙄𝘿 : ${displayId(cmd)}\n` +
     `├‣ 𝘼𝙪𝙩𝙝𝙤𝙧 : ${cmd.author || "Unknown"}\n` +
     `├‣ 𝘾𝙖𝙩𝙚𝙜𝙤𝙧𝙮 : ${catBadge(cmd)}\n` +
@@ -722,7 +696,7 @@ async function sendListPage(api, threadID, senderID, category, page, limit, pref
 function searchTitle(query, category, kind, author) {
   if (query)  return `🔍 𝙎𝙚𝙖𝙧𝙘𝙝: "${query}"`;
   if (author) return `👤 𝘼𝙪𝙩𝙝𝙤𝙧: ${author}`;
-  if (kind)   return `${kind === "event" ? "⚡ 𝙀𝙫𝙚𝙣𝙩𝙨" : "🧩 𝘾𝙤𝙢𝙢𝙖𝙣𝙙𝙨"}${category ? ` — ${category}` : ""}`;
+  if (kind)   return `${kind === "event" ? "⚡ 𝙀𝙫𝙚𝙣𝙩𝙨" : "☠️ 𝘾𝙤𝙢𝙢𝙖𝙣𝙙𝙨"}${category ? ` — ${category}` : ""}`;
   return `📂 𝘾𝙖𝙩𝙚𝙜𝙤𝙧𝙮: ${category || "all"}`;
 }
 
@@ -775,7 +749,7 @@ async function renderSearchInto(query, category, page, limit, kind = "", author 
 function buildMenu(prefix) {
   const p = `${prefix}gs`;
   return (
-    `👑 ━━━✦🗲 **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀** 🗲✦━━━ 👑\n` +
+    `👑 ━━━✦☠️ **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀** ☠️✦━━━ 👑\n` +
     `   🔥 𝙐𝙡𝙩𝙞𝙢𝙖𝙩𝙚 𝘾𝙤𝙢𝙢𝙖𝙣𝙙 𝙈𝙖𝙧𝙠𝙚𝙩𝙥𝙡𝙖𝙘𝙚 🔥\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
     `• ${p}               — 𝙈𝙚𝙣𝙪 / 𝙉𝙤𝙩𝙞𝙛𝙞𝙘𝙖𝙩𝙞𝙤𝙣𝙨\n` +
@@ -805,7 +779,7 @@ module.exports = {
   config: {
     name:             "goatstore",
     aliases:          ["gs", "store", "cmdstore"],
-    version:          "1.4.0",
+    version:          "1.6.0",
     author:           "Hridoy Hossen",
     countDown:        3,
     role:             0,
@@ -942,15 +916,12 @@ module.exports = {
 
     if (sub === "owner" || sub === "admin" || sub === "creator") {
       const coverText = "Goatstore Owner Of Ego";
-      const apiUrl = `https://api.popcat.xyz/textcard?text=${encodeURIComponent(coverText)}`;
-      
-      // Alternatively using an advanced robotics aesthetic image generator banner url
       const roboticsBannerUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent("Futuristic cybernetic robotics elite control room, neon blue and gold glowing circuits, highly detailed vector digital art banner, cinematic lighting, 8k resolution, text banner style")}`;
 
       try {
         const imgRes = await axios.get(roboticsBannerUrl, { responseType: "stream" });
         return api.sendMessage({
-          body: `👑 **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 — 𝙊𝙒𝙉𝙀𝙍**\n━━━━━━━━━━━━━━━━━━━━━━━\n✨ *${coverText}*`,
+          body: `👑 **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 — 𝙊𝙒𝙉𝙀𝙍**\n━━━━━━━━━━━━━━━━━━━━━━━\n☠️ *${coverText}*`,
           attachment: imgRes.data
         }, threadID);
       } catch (_) {
@@ -958,7 +929,7 @@ module.exports = {
           `👑 **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 — 𝙊𝙒𝙉𝙀𝙍**\n` +
           `╭─‣ **${coverText}**\n` +
           `╰──────────────◊\n` +
-          `🤖 *Status: Supreme System Administrator*`,
+          `☠️ *Status: Supreme System Administrator*`,
           threadID
         );
       }
@@ -1172,7 +1143,7 @@ module.exports = {
     if (sub === "commands") {
       const list = await apiSearch("", "", 0, "command").catch(() => []);
       if (!list.length) return api.sendMessage("🚫 𝙉𝙤 𝙘𝙤𝙢𝙢𝙖𝙣𝙙𝙨 𝙛𝙤𝙪𝙣𝙙.", threadID);
-      let msg = `🧩 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 — 𝘾𝙤𝙢𝙢𝙖𝙣𝙙𝙨 (${list.length})\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      let msg = `☠️ 𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 — 𝘾𝙤𝙢𝙢𝙖𝙣𝙙𝙨 (${list.length})\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
       list.slice(0, 10).forEach(cmd => { msg += renderCmdRow(cmd); });
       return api.sendMessage(msg.trim(), threadID);
     }
@@ -1197,7 +1168,7 @@ module.exports = {
         const msg =
           `👑 **𝙀𝙂𝙊 𝙂𝙊𝘼𝙏𝙎𝙏𝙊𝙍𝙀 𝙄𝙏𝙀𝙈 𝙄𝙉𝙁𝙊**\n` +
           `╭─‣ 𝙉𝙖𝙢𝙚 : ${cmd.name}\n` +
-          `├‣ 𝙏𝙮𝙥𝙚 : ${cmd.kind === "event" ? "⚡ Event" : "🧩 Command"}\n` +
+          `├‣ 𝙏𝙮𝙥𝙚 : ${cmd.kind === "event" ? "⚡ Event" : "☠️ Command"}\n` +
           `├‣ 𝘼𝙪𝙩𝙝𝙤𝙧 : ${cmd.author || "Unknown"}\n` +
           `├‣ 𝘾𝙖𝙩𝙚𝙜𝙤𝙧𝙮 : ${catBadge(cmd)}\n` +
           `├‣ 𝙇𝙞𝙠𝙚𝙨 : 🔥 ${cmd.likes || 0}\n` +
