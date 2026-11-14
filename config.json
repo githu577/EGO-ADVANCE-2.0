@@ -13,22 +13,23 @@
   "language": "en",
   "notesLanguage": "change language using ISO 639-1 code",
   "nickNameBot": "—͞Sʜɪᴢᴜᴋꫝ⎯♡︎💋🌷",
-  "prefix": "-",
+  "prefix": "/",
   "enableTypingIndicator": true,
   "notesTypingIndicator": "true = show 'is typing...' for the humanizer delay before replying | false = reply instantly, no typing shown",
   "humanizer": {
     "enable": true,
     "delayMs": 1000,
     "cooldownMs": 5500,
+    "perCommand": true,
     "maxPerMinute": 20,
-    "notes": "delayMs = how long the bot waits (and shows typing) before replying to a command. cooldownMs = min gap between two accepted commands per thread. maxPerMinute = global accepted-command cap. Set enable=false to reply instantly with no delay."
+    "notes": "delayMs = how long the bot waits (and shows typing) before replying to a command. cooldownMs = min gap before the SAME command can run again in a thread. perCommand = true keys that cooldown per command, so different commands (/pp then /uid) all run back-to-back while the same command repeated is dropped; false reverts to a single per-thread cooldown that drops every command in the window. maxPerMinute = global accepted-command cap. Set enable=false to reply instantly with no delay."
   },
   "noPrefix": {
     "enable": true,
     "notes": "true = only bot admins can use commands without prefix | false = everyone must use prefix"
   },
   "e2ee": {
-    "enable": false,
+    "enable": true,
     "notes": "true = connect E2EE messaging layer on startup | false = skip E2EE entirely, MQTT only"
   },
   "adminOnly": {
@@ -106,6 +107,13 @@
     "timeInterval": 180,
     "url": "",
     "notes": "Time in seconds. Recommended for uptime monitors."
+  },
+  "keepAlive": {
+    "enable": true,
+    "interval": 10,
+    "url": "",
+    "path": "/health",
+    "notes": "Prevents free hosts (Render) from spinning the service down by pinging its own public URL. interval is in minutes (keep below 15). Leave url empty to auto-detect RENDER_EXTERNAL_URL / RENDER_EXTERNAL_HOSTNAME; on a VPS set url to your public address or leave it empty to disable."
   },
   "autoLoadScripts": {
     "enable": false,
